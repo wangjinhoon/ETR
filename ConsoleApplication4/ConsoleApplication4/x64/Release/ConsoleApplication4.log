@@ -1,0 +1,48 @@
+﻿  ConsoleApplication4.cpp
+C:\Program Files (x86)\Open3D\include\open3d\3rdparty\Eigen\src\Core\arch\Default\Half.h(1,1): warning C4819: The file contains a character that cannot be represented in the current code page (949). Save the file in Unicode format to prevent data loss
+C:\Program Files (x86)\Open3D\include\open3d\3rdparty\Eigen\src\Core\arch\Default\BFloat16.h(1,1): warning C4819: The file contains a character that cannot be represented in the current code page (949). Save the file in Unicode format to prevent data loss
+C:\Program Files (x86)\Open3D\include\open3d\3rdparty\Eigen\src\Core\arch\Default\GenericPacketMathFunctions.h(678,1): warning C4819: The file contains a character that cannot be represented in the current code page (949). Save the file in Unicode format to prevent data loss
+C:\Program Files (x86)\Open3D\include\open3d\3rdparty\Eigen\src\Core\products\GeneralBlockPanelKernel.h(2064,1): warning C4819: The file contains a character that cannot be represented in the current code page (949). Save the file in Unicode format to prevent data loss
+C:\Program Files (x86)\Open3D\include\open3d\core\Tensor.h(1,1): warning C4819: The file contains a character that cannot be represented in the current code page (949). Save the file in Unicode format to prevent data loss
+C:\Program Files (x86)\Open3D\include\open3d\data\Dataset.h(1,1): warning C4819: The file contains a character that cannot be represented in the current code page (949). Save the file in Unicode format to prevent data loss
+C:\Program Files (x86)\Open3D\include\open3d\data\Dataset.h(734,1): warning C4819: The file contains a character that cannot be represented in the current code page (949). Save the file in Unicode format to prevent data loss
+C:\Program Files (x86)\Open3D\include\open3d\geometry\Octree.h(1,1): warning C4819: The file contains a character that cannot be represented in the current code page (949). Save the file in Unicode format to prevent data loss
+C:\Program Files (x86)\Open3D\include\open3d\geometry\PointCloud.h(1,1): warning C4819: The file contains a character that cannot be represented in the current code page (949). Save the file in Unicode format to prevent data loss
+C:\Program Files (x86)\Open3D\include\open3d\geometry\TriangleMesh.h(1,1): warning C4819: The file contains a character that cannot be represented in the current code page (949). Save the file in Unicode format to prevent data loss
+C:\Program Files (x86)\Open3D\include\open3d\pipelines\color_map\NonRigidOptimizer.h(1,1): warning C4819: The file contains a character that cannot be represented in the current code page (949). Save the file in Unicode format to prevent data loss
+C:\Program Files (x86)\Open3D\include\open3d\pipelines\color_map\RigidOptimizer.h(1,1): warning C4819: The file contains a character that cannot be represented in the current code page (949). Save the file in Unicode format to prevent data loss
+C:\Program Files (x86)\Open3D\include\open3d\pipelines\registration\TransformationEstimation.h(1,1): warning C4819: The file contains a character that cannot be represented in the current code page (949). Save the file in Unicode format to prevent data loss
+C:\Program Files (x86)\Open3D\include\open3d\pipelines\registration\RobustKernel.h(1,1): warning C4819: The file contains a character that cannot be represented in the current code page (949). Save the file in Unicode format to prevent data loss
+C:\Program Files (x86)\Open3D\include\open3d\t\geometry\PointCloud.h(1,1): warning C4819: The file contains a character that cannot be represented in the current code page (949). Save the file in Unicode format to prevent data loss
+C:\Program Files (x86)\Open3D\include\open3d\t\pipelines\registration\TransformationEstimation.h(1,1): warning C4819: The file contains a character that cannot be represented in the current code page (949). Save the file in Unicode format to prevent data loss
+C:\Program Files (x86)\Open3D\include\open3d\t\pipelines\registration\RobustKernel.h(1,1): warning C4819: The file contains a character that cannot be represented in the current code page (949). Save the file in Unicode format to prevent data loss
+C:\Program Files (x86)\Open3D\include\open3d\core\SmallVector.h(106,28): warning C4267: 'initializing': conversion from 'size_t' to 'Size_T', possible loss of data
+          with
+          [
+              Size_T=unsigned int
+          ]
+C:\Program Files (x86)\Open3D\include\open3d\core\SmallVector.h(105): message : while compiling class template member function 'open3d::core::SmallVectorBase<unsigned int>::SmallVectorBase(void *,size_t)'
+C:\Program Files (x86)\Open3D\include\open3d\core\SmallVector.h(169): message : see reference to function template instantiation 'open3d::core::SmallVectorBase<unsigned int>::SmallVectorBase(void *,size_t)' being compiled
+C:\Program Files (x86)\Open3D\include\open3d\core\SmallVector.h(154): message : see reference to class template instantiation 'open3d::core::SmallVectorBase<unsigned int>' being compiled
+C:\Program Files (x86)\Open3D\include\open3d\core\SmallVector.h(368): message : see reference to class template instantiation 'open3d::core::SmallVectorTemplateCommon<T,void>' being compiled
+          with
+          [
+              T=open3d::utility::optional<int64_t>
+          ]
+C:\Program Files (x86)\Open3D\include\open3d\core\SmallVector.h(616): message : see reference to class template instantiation 'open3d::core::SmallVectorTemplateBase<T,false>' being compiled
+          with
+          [
+              T=open3d::utility::optional<int64_t>
+          ]
+C:\Program Files (x86)\Open3D\include\open3d\core\SmallVector.h(1260): message : see reference to class template instantiation 'open3d::core::SmallVectorImpl<T>' being compiled
+          with
+          [
+              T=open3d::utility::optional<int64_t>
+          ]
+C:\Program Files (x86)\Open3D\include\open3d\core\SizeVector.h(31): message : see reference to class template instantiation 'open3d::core::SmallVector<open3d::utility::optional<int64_t>,4>' being compiled
+  Generating code
+  1 of 473 functions ( 0.2%) were compiled, the rest were copied from previous compilation.
+    0 functions were new in current compilation
+    48 functions had inline decision re-evaluated but remain unchanged
+  Finished generating code
+  ConsoleApplication4.vcxproj -> C:\Users\jh813\source\repos\ConsoleApplication4\x64\Release\ConsoleApplication4.exe

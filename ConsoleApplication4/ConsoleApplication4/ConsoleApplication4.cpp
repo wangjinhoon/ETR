@@ -29,7 +29,23 @@ int main() {
     
     pcd_filtered.EstimateNormals();
 
-   open3d::io::WritePointCloud("cleaned_point_cloud.ply", pcd_filtered);
+
+    /*Calculate the initial bounding box, including the original point 
+    cloud,and use the value to filter all surfaces outside the bounding box 
+    for neat results*/
+    // Gets the points in the point cloud data.
+    const open3d::geometry::PointCloud& point_cloud = pcd_filtered;
+
+    // Sets the initial value.
+    Eigen::Vector3d min_point = point_cloud.GetMinBound();
+    Eigen::Vector3d max_point = point_cloud.GetMaxBound();
+
+    // print result
+    //std::cout << "min point: " << min_point.transpose() << std::endl;
+    //std::cout << "max point: " << max_point.transpose() << std::endl;
+
+
+   //open3d::io::WritePointCloud("cleaned_point_cloud.ply", pcd_filtered); 
 
     // Perform Poisson surface reconstruction
     int depth = 8;
@@ -43,14 +59,20 @@ int main() {
                                           float scale,
                                           bool linear_fit,
                                           int n_threads)*/
-    auto result = open3d::geometry::TriangleMesh::CreateFromPointCloudPoisson(pcd_filtered, depth, width, scale, linear_fit);
-    
+    auto poisson_mesh = open3d::geometry::TriangleMesh::CreateFromPointCloudPoisson(pcd_filtered, depth, width, scale, linear_fit);
+
     //Output is shared_ptr<TriangleMesh>, std::vector<double>, so only shared_ptr information is extracted as a get function
-    auto mesh_ptr = std::get<std::shared_ptr<open3d::geometry::TriangleMesh>>(result);
+    auto crop_before_poisson_mesh = std::get<std::shared_ptr<open3d::geometry::TriangleMesh>>(poisson_mesh);
+    
+    // Defines the bounding box to be cropped.
+    open3d::geometry::AxisAlignedBoundingBox crop_bbox(min_point, max_point);
+
+    // Create a cropped mesh.
+    auto cropped_mesh = crop_before_poisson_mesh->Crop(crop_bbox);
 
 
     //save masy to path 
-    if (io::WriteTriangleMesh(output_file_path, *mesh_ptr)) { 
+    if (io::WriteTriangleMesh(output_file_path, *cropped_mesh)) {
         std::cout << "Mesh saved to " << output_file_path << std::endl; 
     }
 

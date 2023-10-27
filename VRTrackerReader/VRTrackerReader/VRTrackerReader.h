@@ -71,7 +71,7 @@ struct OpenVRIDAndUnrealID {
 
 class VRTrackerReader {
 private:
-	const static uint8_t MAXTRACKERS = 3;
+	const static uint8_t MAXTRACKERS = 6;
 	const std::string FILENAME = "VRTrackerReader.ini";
 	const std::string DELIMITER = "=";
 
@@ -82,10 +82,10 @@ private:
 public:
 	bool configurationMode = false;
 
-	void run(std::ofstream& outputFile);
+	void run();
 	void printInformationAboutConnectedDevices();
 	std::string FileCreate();
-	void getData(TrackingData& data, uint32_t identifier, std::ofstream& outputFile, float* ini_x, float* ini_y, float* ini_z);
+	void getData(TrackingData& data, uint32_t identifier, std::ofstream& outputFile, float* ini_x, float* ini_y, float* ini_z, bool a);
 	void setTrackingResult(TrackingData& data, vr::ETrackingResult result);
 
 	std::string getManufacturerInformation(vr::TrackedDeviceIndex_t device);

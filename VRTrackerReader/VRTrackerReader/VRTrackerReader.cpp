@@ -477,22 +477,15 @@
 //}
 
 
-
-
-
-
 //////////////////////////////////////////////////////////
-
-
-
-
-
-
 #include "VRTrackerReader.h"
 #include <stdio.h>
 #include <windows.h>
 
-void VRTrackerReader::getData(TrackingData& data, uint32_t identifier, std::ofstream& outputFile, float* ini_x, float* ini_y, float* ini_z) {
+float tr_x = 0;
+float tr_y = 0;
+float tr_z = 0;
+void VRTrackerReader::getData(TrackingData& data, uint32_t identifier, std::ofstream& outputFile, float* ini_x, float* ini_y, float* ini_z, bool a) {
     vr::TrackedDevicePose_t devicePose;
     vr::VRControllerState_t controllerState;
     //std::cout << identifier << std::endl;
@@ -503,7 +496,10 @@ void VRTrackerReader::getData(TrackingData& data, uint32_t identifier, std::ofst
     data.position = getPosition(devicePose.mDeviceToAbsoluteTracking);
     setTrackingResult(data, devicePose.eTrackingResult);
     //std::cout << "*ini_x : " <<*ini_x << *ini_y << *ini_z << std::endl;
-    if (identifier == 7 && *ini_x == 0.0 && *ini_y == 0.0 && *ini_z == 0.0){
+
+
+    //initilization
+    if (identifier == 7 && *ini_x == 0.0 && *ini_y == 0.0 && *ini_z == 0.0 && a){
         *ini_x = devicePose.mDeviceToAbsoluteTracking.m[0][3] * METERTOUNREALUNITS;
         *ini_y = devicePose.mDeviceToAbsoluteTracking.m[1][3] * METERTOUNREALUNITS;
         *ini_z = -devicePose.mDeviceToAbsoluteTracking.m[2][3] * METERTOUNREALUNITS;
@@ -512,61 +508,54 @@ void VRTrackerReader::getData(TrackingData& data, uint32_t identifier, std::ofst
             << " *ini_z : " << *ini_z << std::endl;
     }
 
-    float tr_x = 0;
-    float tr_y = 0;
-    float tr_z = 0;
-
     Matrix4X4 pose(devicePose.mDeviceToAbsoluteTracking);
 
-    if (identifier == 7) {
+    if (identifier == 7 && a) {
         Quaternion orientation = toQuaternion(pose);
+        
         // get current time
-        auto currentTime = std::chrono::high_resolution_clock::now();
+        std::time_t unix_timestamp = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 
-        // transform timestamps to ms
-        auto timestamp = std::chrono::time_point_cast<std::chrono::milliseconds>(currentTime).time_since_epoch().count();
 
-        std::cout << timestamp << " x : " << std::left << std::setw(10) << devicePose.mDeviceToAbsoluteTracking.m[0][3] * METERTOUNREALUNITS - *ini_x
+        // put_time을 사용하여 날짜와 시간 형식 지정하기
+        //std::cout << std::put_time(date, "%Y-%m-%d %H:%M:%S") << std::endl;
+
+
+        std::cout << " x : " << std::left << std::setw(10) << devicePose.mDeviceToAbsoluteTracking.m[0][3] * METERTOUNREALUNITS - *ini_x
             << ", y : " << std::left << std::setw(10) << devicePose.mDeviceToAbsoluteTracking.m[1][3] * METERTOUNREALUNITS - *ini_y
             << ", z : " << std::left << std::setw(10) << -devicePose.mDeviceToAbsoluteTracking.m[2][3] * METERTOUNREALUNITS - *ini_z
-            << ", q.w : " << std::left << std::setw(10) << orientation.w
             << ", q.x : " << std::left << std::setw(10) << orientation.x
             << ", q.y : " << std::left << std::setw(10) << orientation.y
-            << ", q.z : " << std::left << std::setw(10) << orientation.z << std::endl;
+            << ", q.z : " << std::left << std::setw(10) << orientation.z
+            << ", q.w : " << std::left << std::setw(10) << orientation.w << std::endl;
 
-        //data save
-        outputFile << timestamp << " " << devicePose.mDeviceToAbsoluteTracking.m[0][3] * METERTOUNREALUNITS - *ini_x
+        ////data save
+        outputFile << unix_timestamp << " " << devicePose.mDeviceToAbsoluteTracking.m[0][3] * METERTOUNREALUNITS - *ini_x
                    << " " << devicePose.mDeviceToAbsoluteTracking.m[1][3] * METERTOUNREALUNITS - *ini_y
                    << " " << -devicePose.mDeviceToAbsoluteTracking.m[2][3] * METERTOUNREALUNITS - *ini_z
-                   << " " << orientation.w
                    << " " << orientation.x
                    << " " << orientation.y
-                   << " " << orientation.z << std::endl;
+                   << " " << orientation.z 
+                   << " " << orientation.w << std::endl;
 
         //initilization data
-        tr_x = devicePose.mDeviceToAbsoluteTracking.m[0][3] * METERTOUNREALUNITS - *ini_x;
-        tr_y = devicePose.mDeviceToAbsoluteTracking.m[1][3] * METERTOUNREALUNITS - *ini_y;
-        tr_z = -devicePose.mDeviceToAbsoluteTracking.m[2][3] * METERTOUNREALUNITS - *ini_z;
-
-        //Sleep(1000);
+        ::tr_x = devicePose.mDeviceToAbsoluteTracking.m[0][3] * METERTOUNREALUNITS;
+        ::tr_y = devicePose.mDeviceToAbsoluteTracking.m[1][3] * METERTOUNREALUNITS;
+        ::tr_z = -devicePose.mDeviceToAbsoluteTracking.m[2][3] * METERTOUNREALUNITS;
     }
 
-    if (identifier == 1) {
-        Quaternion orientation = toQuaternion(pose);
-        // get current time
-        auto currentTime = std::chrono::high_resolution_clock::now();
 
-        // transform timestamps to ms
-        auto timestamp = std::chrono::time_point_cast<std::chrono::milliseconds>(currentTime).time_since_epoch().count();
+    //tracker dist error
+    else if(identifier != 0 && a && tr_x != 0){
+        double distance = sqrt(((devicePose.mDeviceToAbsoluteTracking.m[0][3] * METERTOUNREALUNITS - ::tr_x) * (devicePose.mDeviceToAbsoluteTracking.m[0][3] * METERTOUNREALUNITS - ::tr_x)) + ((devicePose.mDeviceToAbsoluteTracking.m[1][3] * METERTOUNREALUNITS - ::tr_y) * (devicePose.mDeviceToAbsoluteTracking.m[1][3] * METERTOUNREALUNITS - ::tr_y)) + ((-devicePose.mDeviceToAbsoluteTracking.m[2][3] * METERTOUNREALUNITS - ::tr_z) * (-devicePose.mDeviceToAbsoluteTracking.m[2][3] * METERTOUNREALUNITS - ::tr_z)));
 
-        std::cout << timestamp << "  x' : " << std::left << std::setw(10) << devicePose.mDeviceToAbsoluteTracking.m[0][3] * METERTOUNREALUNITS - *ini_x
-            << " y' : " << std::left << std::setw(10) << devicePose.mDeviceToAbsoluteTracking.m[1][3] * METERTOUNREALUNITS - *ini_y
-            << " z' : " << std::left << std::setw(10) << -devicePose.mDeviceToAbsoluteTracking.m[2][3] * METERTOUNREALUNITS - *ini_z  << std::endl;
 
-        //two tracker dist error
-        std::cout << timestamp << "  x-x' : " << std::left << std::setw(10) << devicePose.mDeviceToAbsoluteTracking.m[0][3] * METERTOUNREALUNITS - *ini_x - tr_x
-            << " y-y' : " << std::left << std::setw(10) << devicePose.mDeviceToAbsoluteTracking.m[1][3] * METERTOUNREALUNITS - *ini_y - tr_y
-            << " z-z' : " << std::left << std::setw(10) << -devicePose.mDeviceToAbsoluteTracking.m[2][3] * METERTOUNREALUNITS - *ini_z - tr_z << "\n" << std::endl;
+        std::cout << identifier << " Pure x' : " << std::left << std::setw(10) << devicePose.mDeviceToAbsoluteTracking.m[0][3] * METERTOUNREALUNITS
+            << " Pure y' : " << std::left << std::setw(10) << devicePose.mDeviceToAbsoluteTracking.m[1][3] * METERTOUNREALUNITS
+            << " Pure z' : " << std::left << std::setw(10) << -devicePose.mDeviceToAbsoluteTracking.m[2][3] * METERTOUNREALUNITS
+            << " distance : " << distance << std::endl;
+
+        Sleep(1000);
     }
 
 };
@@ -706,13 +695,16 @@ std::string VRTrackerReader::FileCreate() {
     return fileName;
 }
 
-void VRTrackerReader::run(std::ofstream& outputFile) {
+void VRTrackerReader::run() {
 
-    float value = 0;
+    VRTrackerReader v;
 
-    float ini_x = value;
-    float ini_y = value;
-    float ini_z = value;
+    std::string fileName = v.FileCreate();
+    std::ofstream outputFile("C:/Users/jh813" + fileName);
+
+    float ini_x = 0;
+    float ini_y = 0;
+    float ini_z = 0;
 
     vr::EVRInitError eError = vr::VRInitError_None;
     vrSystem = vr::VR_Init(&eError, vr::VRApplication_Background);
@@ -733,20 +725,31 @@ void VRTrackerReader::run(std::ofstream& outputFile) {
     readConfigurationFile();
     applyConfiguration();
 
+    bool a = FALSE;
+
     UDPSender sender;
     sender.initUDPSender();
 
     while (true) {
-        if (GetKeyState('C') & 0x8000 || GetKeyState('Q') & 0x8000 || GetKeyState(VK_ESCAPE) & 0x8000) {
+        if (GetKeyState('C') & 0x8000 || GetKeyState(VK_ESCAPE) & 0x8000) {
             sender.close();
             std::cout << "End of program" << std::endl;
             outputFile.close();
             exit(0);
         }
+        if (GetKeyState('Q') & 0x8000 && a == FALSE) {
+            std::cout << "initilization!" << std::endl;
+            float ini_x = 0;
+            float ini_y = 0;
+            float ini_z = 0;
+
+            a = TRUE;
+        }
+
         for (auto& openVRIdAndUnrealId : openVRIDAndUnrealIDs) {
             std::this_thread::sleep_for(std::chrono::milliseconds(5));
             TrackingData data;
-            getData(data, openVRIdAndUnrealId.openVRID, outputFile, &ini_x, &ini_y, &ini_z);
+            getData(data, openVRIdAndUnrealId.openVRID, outputFile, &ini_x, &ini_y, &ini_z, a );
             sender.sendData(openVRIdAndUnrealId.unrealID, data);
         }
     }
@@ -761,9 +764,5 @@ int main(int argc, char* argv[])
         std::cout << "Will create configuration based of currently connected devices." << std::endl;
     }
 
-
-    std::string fileName = v.FileCreate();
-    std::ofstream outputFile("C:/Users/jh813" + fileName);
-
-    v.run(outputFile);
+    v.run();
 }

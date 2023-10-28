@@ -499,7 +499,7 @@ void VRTrackerReader::getData(TrackingData& data, uint32_t identifier, std::ofst
 
 
     //initilization
-    if (identifier == 7 && *ini_x == 0.0 && *ini_y == 0.0 && *ini_z == 0.0 && a){
+    if (identifier == 3 && *ini_x == 0.0 && *ini_y == 0.0 && *ini_z == 0.0 && a){
         *ini_x = devicePose.mDeviceToAbsoluteTracking.m[0][3] * METERTOUNREALUNITS;
         *ini_y = devicePose.mDeviceToAbsoluteTracking.m[1][3] * METERTOUNREALUNITS;
         *ini_z = -devicePose.mDeviceToAbsoluteTracking.m[2][3] * METERTOUNREALUNITS;
@@ -510,7 +510,7 @@ void VRTrackerReader::getData(TrackingData& data, uint32_t identifier, std::ofst
 
     Matrix4X4 pose(devicePose.mDeviceToAbsoluteTracking);
 
-    if (identifier == 7 && a) {
+    if (identifier == 3 && a) {
         Quaternion orientation = toQuaternion(pose);
         
         // get current time
@@ -530,9 +530,9 @@ void VRTrackerReader::getData(TrackingData& data, uint32_t identifier, std::ofst
             << ", q.w : " << std::left << std::setw(10) << orientation.w << std::endl;
 
         ////data save
-        outputFile << unix_timestamp << " " << devicePose.mDeviceToAbsoluteTracking.m[0][3] * METERTOUNREALUNITS - *ini_x
-                   << " " << devicePose.mDeviceToAbsoluteTracking.m[1][3] * METERTOUNREALUNITS - *ini_y
-                   << " " << -devicePose.mDeviceToAbsoluteTracking.m[2][3] * METERTOUNREALUNITS - *ini_z
+        outputFile << unix_timestamp << " " << devicePose.mDeviceToAbsoluteTracking.m[0][3] - *ini_x / METERTOUNREALUNITS
+                   << " " << devicePose.mDeviceToAbsoluteTracking.m[1][3]  - *ini_y / METERTOUNREALUNITS
+                   << " " << -devicePose.mDeviceToAbsoluteTracking.m[2][3]  - *ini_z / METERTOUNREALUNITS
                    << " " << orientation.x
                    << " " << orientation.y
                    << " " << orientation.z 
@@ -700,7 +700,7 @@ void VRTrackerReader::run() {
     VRTrackerReader v;
 
     std::string fileName = v.FileCreate();
-    std::ofstream outputFile("C:/Users/jh813" + fileName);
+    std::ofstream outputFile("C:\\Users\\admin\\" + fileName);
 
     float ini_x = 0;
     float ini_y = 0;

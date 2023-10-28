@@ -539,20 +539,20 @@ void VRTrackerReader::getData(TrackingData& data, uint32_t identifier, std::ofst
                    << " " << orientation.w << std::endl;
 
         //initilization data
-        ::tr_x = devicePose.mDeviceToAbsoluteTracking.m[0][3] * METERTOUNREALUNITS;
-        ::tr_y = devicePose.mDeviceToAbsoluteTracking.m[1][3] * METERTOUNREALUNITS;
-        ::tr_z = -devicePose.mDeviceToAbsoluteTracking.m[2][3] * METERTOUNREALUNITS;
+        ::tr_x = devicePose.mDeviceToAbsoluteTracking.m[0][3] * METERTOUNREALUNITS - *ini_x;
+        ::tr_y = devicePose.mDeviceToAbsoluteTracking.m[1][3] * METERTOUNREALUNITS - *ini_y;
+        ::tr_z = -devicePose.mDeviceToAbsoluteTracking.m[2][3] * METERTOUNREALUNITS - *ini_z;
     }
 
 
     //tracker dist error
     else if(identifier != 0 && a && tr_x != 0){
-        double distance = sqrt(((devicePose.mDeviceToAbsoluteTracking.m[0][3] * METERTOUNREALUNITS - ::tr_x) * (devicePose.mDeviceToAbsoluteTracking.m[0][3] * METERTOUNREALUNITS - ::tr_x)) + ((devicePose.mDeviceToAbsoluteTracking.m[1][3] * METERTOUNREALUNITS - ::tr_y) * (devicePose.mDeviceToAbsoluteTracking.m[1][3] * METERTOUNREALUNITS - ::tr_y)) + ((-devicePose.mDeviceToAbsoluteTracking.m[2][3] * METERTOUNREALUNITS - ::tr_z) * (-devicePose.mDeviceToAbsoluteTracking.m[2][3] * METERTOUNREALUNITS - ::tr_z)));
+        double distance = sqrt(((devicePose.mDeviceToAbsoluteTracking.m[0][3] * METERTOUNREALUNITS - *ini_x - ::tr_x) * (devicePose.mDeviceToAbsoluteTracking.m[0][3] * METERTOUNREALUNITS - *ini_x - ::tr_x)) + ((devicePose.mDeviceToAbsoluteTracking.m[1][3] * METERTOUNREALUNITS - *ini_y - ::tr_y) * (devicePose.mDeviceToAbsoluteTracking.m[1][3] * METERTOUNREALUNITS - *ini_y - ::tr_y)) + ((-devicePose.mDeviceToAbsoluteTracking.m[2][3] * METERTOUNREALUNITS - *ini_z - ::tr_z) * (-devicePose.mDeviceToAbsoluteTracking.m[2][3] * METERTOUNREALUNITS - *ini_z - ::tr_z)));
 
 
-        std::cout << identifier << " Pure x' : " << std::left << std::setw(10) << devicePose.mDeviceToAbsoluteTracking.m[0][3] * METERTOUNREALUNITS
-            << " Pure y' : " << std::left << std::setw(10) << devicePose.mDeviceToAbsoluteTracking.m[1][3] * METERTOUNREALUNITS
-            << " Pure z' : " << std::left << std::setw(10) << -devicePose.mDeviceToAbsoluteTracking.m[2][3] * METERTOUNREALUNITS
+        std::cout << identifier << " x' : " << std::left << std::setw(10) << devicePose.mDeviceToAbsoluteTracking.m[0][3] * METERTOUNREALUNITS - *ini_x
+            << " y' : " << std::left << std::setw(10) << devicePose.mDeviceToAbsoluteTracking.m[1][3] * METERTOUNREALUNITS - *ini_y
+            << " z' : " << std::left << std::setw(10) << -devicePose.mDeviceToAbsoluteTracking.m[2][3] * METERTOUNREALUNITS - *ini_z
             << " distance : " << distance << std::endl;
 
         Sleep(1000);

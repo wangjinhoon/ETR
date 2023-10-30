@@ -499,7 +499,7 @@ void VRTrackerReader::getData(TrackingData& data, uint32_t identifier, std::ofst
 
 
     //initilization
-    if (identifier == 3 && *ini_x == 0.0 && *ini_y == 0.0 && *ini_z == 0.0 && a){
+    if (identifier == 7 && *ini_x == 0.0 && *ini_y == 0.0 && *ini_z == 0.0 && a){
         *ini_x = devicePose.mDeviceToAbsoluteTracking.m[0][3] * METERTOUNREALUNITS;
         *ini_y = devicePose.mDeviceToAbsoluteTracking.m[1][3] * METERTOUNREALUNITS;
         *ini_z = -devicePose.mDeviceToAbsoluteTracking.m[2][3] * METERTOUNREALUNITS;
@@ -510,11 +510,30 @@ void VRTrackerReader::getData(TrackingData& data, uint32_t identifier, std::ofst
 
     Matrix4X4 pose(devicePose.mDeviceToAbsoluteTracking);
 
-    if (identifier == 3 && a) {
+    if (identifier == 7 && a) {
         Quaternion orientation = toQuaternion(pose);
         
         // get current time
-        std::time_t unix_timestamp = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+        //std::time_t unix_timestamp = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+
+
+          // 현재 시간을 나타내는 시간 포인트를 생성
+        auto currentTimePoint = std::chrono::system_clock::now();
+
+        // 시간 포인트를 초 단위로 변환
+        auto seconds = std::chrono::time_point_cast<std::chrono::seconds>(currentTimePoint);
+
+        // 초 단위로 변환된 시간 포인트를 출력
+        std::cout << "Seconds since epoch: " << seconds.time_since_epoch().count() << " seconds." << std::endl;
+
+        // get current time
+        auto currentTime = std::chrono::high_resolution_clock::now();
+
+        // transform timestamps to ms
+        auto timestamp = std::chrono::time_point_cast<std::chrono::milliseconds>(currentTime).time_since_epoch().count();
+
+        std::cout << timestamp << std::endl;
+
 
 
         // put_time을 사용하여 날짜와 시간 형식 지정하기
@@ -530,13 +549,13 @@ void VRTrackerReader::getData(TrackingData& data, uint32_t identifier, std::ofst
             << ", q.w : " << std::left << std::setw(10) << orientation.w << std::endl;
 
         ////data save
-        outputFile << unix_timestamp << " " << devicePose.mDeviceToAbsoluteTracking.m[0][3] - *ini_x / METERTOUNREALUNITS
-                   << " " << devicePose.mDeviceToAbsoluteTracking.m[1][3]  - *ini_y / METERTOUNREALUNITS
-                   << " " << -devicePose.mDeviceToAbsoluteTracking.m[2][3]  - *ini_z / METERTOUNREALUNITS
+        /*outputFile << timestamp  << " " << devicePose.mDeviceToAbsoluteTracking.m[0][3] * METERTOUNREALUNITS - *ini_x
+                   << " " << devicePose.mDeviceToAbsoluteTracking.m[1][3] * METERTOUNREALUNITS - *ini_y
+                   << " " << -devicePose.mDeviceToAbsoluteTracking.m[2][3] * METERTOUNREALUNITS - *ini_z
                    << " " << orientation.x
                    << " " << orientation.y
                    << " " << orientation.z 
-                   << " " << orientation.w << std::endl;
+                   << " " << orientation.w << std::endl;*/
 
         //initilization data
         ::tr_x = devicePose.mDeviceToAbsoluteTracking.m[0][3] * METERTOUNREALUNITS - *ini_x;
@@ -700,7 +719,7 @@ void VRTrackerReader::run() {
     VRTrackerReader v;
 
     std::string fileName = v.FileCreate();
-    std::ofstream outputFile("C:\\Users\\admin\\" + fileName);
+    std::ofstream outputFile("C:/Users/jh813" + fileName);
 
     float ini_x = 0;
     float ini_y = 0;

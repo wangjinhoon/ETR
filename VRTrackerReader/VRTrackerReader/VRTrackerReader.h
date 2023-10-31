@@ -71,7 +71,7 @@ struct OpenVRIDAndUnrealID {
 
 class VRTrackerReader {
 private:
-	const static uint8_t MAXTRACKERS = 6;
+	const static uint8_t MAXTRACKERS = 10;
 	const std::string FILENAME = "VRTrackerReader.ini";
 	const std::string DELIMITER = "=";
 

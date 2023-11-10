@@ -81,16 +81,15 @@ private:
 
 public:
 	bool configurationMode = false;
-
 	void run();
 	void printInformationAboutConnectedDevices();
 	std::string FileCreate();
 	void getData(TrackingData& data, uint32_t identifier, std::ofstream& outputFile, float* ini_x, float* ini_y, float* ini_z, bool a);
-	void setTrackingResult(TrackingData& data, vr::ETrackingResult result);
-
-	std::string getManufacturerInformation(vr::TrackedDeviceIndex_t device);
+	void setTrackingResult(TrackingData& data, vr::ETrackingResult result);	std::string getManufacturerInformation(vr::TrackedDeviceIndex_t device);
 
 	void createConfigurationFile();
 	void readConfigurationFile();
 	void applyConfiguration();
 };
+
+// y·Î -90 x·Î -180µµ

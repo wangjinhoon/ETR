@@ -5,6 +5,7 @@
 #include <vector>
 #include "openvr.h"
 #include "Structs.h"
+#include <Eigen>
 
 const int METERTOUNREALUNITS = 100;
 
@@ -36,6 +37,7 @@ public:
 	};
 };
 
+Quaternion toQuaternion(const Eigen::Matrix4f& M);
 Quaternion toQuaternion(const Matrix4X4& M);
 RPY calculateYPR(const Quaternion& orientation);
 std::vector<float> getPosition(vr::HmdMatrix34_t& matrix);

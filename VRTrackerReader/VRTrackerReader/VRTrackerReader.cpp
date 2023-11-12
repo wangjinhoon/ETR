@@ -170,10 +170,17 @@ void VRTrackerReader::getData(TrackingData& data, uint32_t identifier, std::ofst
             // Insert a dot at the sixth position from the end
             number.insert(number.length() - 5, 1, '.');
 
+            double originalValue = std::stod(number);
+
+            // Subtract 2.0
+            double modifiedValue = originalValue - 2.0;
+
+            // Convert the result back to string
+            std::string modifiedString = std::to_string(modifiedValue);
 
 
             //data save
-            outputFile << number
+            outputFile << modifiedString
                 << " " << (-pose1(2, 3) * METERTOUNREALUNITS - *ini_z - ::cam_ini_z) / 100
                 << " " << -(pose1(0, 3) * METERTOUNREALUNITS - *ini_x - ::cam_ini_x) / 100
                 << " " << (pose1(1, 3) * METERTOUNREALUNITS - *ini_y - ::cam_ini_y) / 100

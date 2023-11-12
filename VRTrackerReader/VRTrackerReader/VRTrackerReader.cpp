@@ -4,6 +4,7 @@
 #include <Eigen>
 #include <cmath>
 #include <iostream>
+#include <string>
 const double PI = std::acos(-1);
 float tr_x = 0;
 float tr_y = 0;
@@ -13,6 +14,12 @@ float cam_ini_x = 0.0;
 float cam_ini_y = 0.0;
 float cam_ini_z = 0.0;
 
+Eigen::Matrix3f swapRollPitch(Eigen::Matrix3f& rotationMatrix) {
+    rotationMatrix(1, 0) = -rotationMatrix(1, 0);
+    rotationMatrix(1, 1) = -rotationMatrix(1, 1);
+    rotationMatrix(1, 2) = -rotationMatrix(1, 2);
+    return rotationMatrix;
+}
 
 // Function to create a 4x4 matrix from rotation and translation
 Eigen::Matrix4f composeMatrix(const Eigen::Matrix3f& rotation, const Eigen::Vector3f& translation) {
@@ -27,9 +34,9 @@ Eigen::Matrix3f createRotationMatrix(float angleY) {
 
     Eigen::Matrix3f rotationMatrixY;
 
-    rotationMatrixY << cos(angleY), 0, sin(angleY),
-        0, 1, 0,
-        -sin(angleY), 0, cos(angleY);
+    rotationMatrixY << 1, 0, 0,
+        0, 0, 1,
+        0, -1, 0;
 
     // Combine the rotation matrices
     Eigen::Matrix3f combinedRotationMatrix = rotationMatrixY;
@@ -38,11 +45,8 @@ Eigen::Matrix3f createRotationMatrix(float angleY) {
 }
 
 Eigen::Matrix4f printSymmetricMatrix(const Matrix4X4& matrix) {
-    Eigen::Vector3f delta_displacement(0.0f, -0.05f, 0.0f);
+    Eigen::Vector3f delta_displacement(0.0f, 0.0f, -0.05f);
     Eigen::Matrix3f delta_rotation = createRotationMatrix(-90.0f);
-    //delta_rotation(2, 0) = -delta_rotation(2, 0);
-    //delta_rotation(2, 1) = -delta_rotation(2, 1);
-    //delta_rotation(2, 2) = -delta_rotation(2, 2);
 
     // Convert Matrix4X4 to Eigen::Matrix4f
     Eigen::Matrix4f eigenMatrix;
@@ -51,7 +55,7 @@ Eigen::Matrix4f printSymmetricMatrix(const Matrix4X4& matrix) {
             eigenMatrix(i, j) = matrix.M[j][i];
         }
     }
-
+    
     //std::cout << eigenMatrix << std::endl;
 
 
@@ -61,11 +65,21 @@ Eigen::Matrix4f printSymmetricMatrix(const Matrix4X4& matrix) {
     Eigen::Vector3f tracker_position = eigenMatrix.block<3, 1>(0, 3);
 
     Eigen::Matrix3f rotation = tracker_rotation * delta_rotation;
-    Eigen::Vector3f position = tracker_position + ((tracker_rotation * delta_rotation) * delta_displacement);
+    
+    
+
+    //std::cout << rotation << std::endl;
+
+    //Eigen::Matrix3f rotation2 = swapRollPitch(rotation);
+
+    //std::cout << rotation2 << std::endl;
+
+    Eigen::Vector3f position = tracker_position + ((rotation) * delta_displacement);
 
     Eigen::Matrix4f resultMatrix = composeMatrix(rotation, position);
 
 
+    //std::cout << resultMatrix << std::endl;
     //std::cout << resultMatrix << std::endl;
     return resultMatrix;
 }
@@ -76,15 +90,13 @@ void VRTrackerReader::getData(TrackingData& data, uint32_t identifier, std::ofst
     //std::cout << identifier << std::endl;
     vr::VRSystem()->GetControllerStateWithPose(vr::TrackingUniverseStanding, identifier, &controllerState, sizeof(controllerState), &devicePose);
 
-    //memcpy(data->angularVelocity, devicePose.vAngularVelocity.v, sizeof(data->angularVelocity));
-    //memcpy(data->velocity, devicePose.vVelocity.v, sizeof(data->velocity));
     data.position = getPosition(devicePose.mDeviceToAbsoluteTracking);
     setTrackingResult(data, devicePose.eTrackingResult);
     //std::cout << "*ini_x : " <<*ini_x << *ini_y << *ini_z << std::endl;
 
     Matrix4X4 pose(devicePose.mDeviceToAbsoluteTracking);
 
-    int cam = 4;
+    int cam = 6;
     int ini = 0;
     Quaternion orientation = toQuaternion(pose);
     //basic
@@ -105,73 +117,92 @@ void VRTrackerReader::getData(TrackingData& data, uint32_t identifier, std::ofst
         *ini_y = devicePose.mDeviceToAbsoluteTracking.m[1][3] * METERTOUNREALUNITS;
         *ini_z = -devicePose.mDeviceToAbsoluteTracking.m[2][3] * METERTOUNREALUNITS;
 
-        Eigen::Quaterniond q(orientation.w, orientation.x, orientation.y, orientation.z);
-
         std::cout << " inilization!!!!! " << std::endl;
-        outputFile << " *ini_x : " << *ini_x
+        /*outputFile << " *ini_x : " << *ini_x
             << " *ini_y : " << *ini_y
-            << " *ini_z : " << *ini_z << std::endl;
-        Sleep(1000);
+            << " *ini_z : " << *ini_z << std::endl;*/
+        //Sleep(1000);
     }
     else if (identifier == cam && ::cam_ini_x == 0.0 && ::cam_ini_y == 0.0 && ::cam_ini_z == 0.0 && a && *ini_x != 0.0) {
-        ::cam_ini_x = devicePose.mDeviceToAbsoluteTracking.m[0][3] * METERTOUNREALUNITS - *ini_x;
-        ::cam_ini_y = devicePose.mDeviceToAbsoluteTracking.m[1][3] * METERTOUNREALUNITS - *ini_y;
-        ::cam_ini_z = -devicePose.mDeviceToAbsoluteTracking.m[2][3] * METERTOUNREALUNITS - *ini_z;
-
+        Eigen::Matrix4f pose1 = printSymmetricMatrix(pose);
+        ::cam_ini_x = pose1(0, 3) * METERTOUNREALUNITS - *ini_x;
+        ::cam_ini_y = pose1(1, 3) * METERTOUNREALUNITS - *ini_y;
+        ::cam_ini_z = -pose1(2, 3) * METERTOUNREALUNITS - *ini_z;
     }
     if (identifier == cam && a && *ini_x != 0.0) {
         auto currentTimePoint = std::chrono::system_clock::now();
         auto microseconds = std::chrono::time_point_cast<std::chrono::microseconds>(currentTimePoint);
 
-        // Convert microseconds to seconds and fractions of a second
-        auto seconds = std::chrono::time_point_cast<std::chrono::seconds>(microseconds);
-        auto fractional_seconds = microseconds - seconds;
-
         Eigen::Matrix4f pose1 = printSymmetricMatrix(pose);
+        
+        //std::cout << "pose1\n" << pose1 << std::endl;
 
         Quaternion orientation1 = toQuaternion(pose1);
         Quaternion orientation2 = toQuaternion(pose);
-        std::cout << identifier << " x : " << std::left << std::setw(10) << pose1(0, 3) * METERTOUNREALUNITS - *ini_x
-            << ", y : " << std::left << std::setw(10) << pose1(1, 3) * METERTOUNREALUNITS - *ini_y
-            << ", z : " << std::left << std::setw(10) << -pose1(2, 3) * METERTOUNREALUNITS - *ini_z
+        std::cout << identifier << " x : " << std::left << std::setw(10) << -pose1(2, 3) * METERTOUNREALUNITS - *ini_x
+            << ", y : " << std::left << std::setw(10) << -pose1(0, 3) * METERTOUNREALUNITS - *ini_y
+            << ", z : " << std::left << std::setw(10) << pose1(1, 3) * METERTOUNREALUNITS - *ini_z
             << ", q.x : " << std::left << std::setw(10) << orientation1.x
             << ", q.y : " << std::left << std::setw(10) << orientation1.y
             << ", q.z : " << std::left << std::setw(10) << orientation1.z
             << ", q.w : " << std::left << std::setw(10) << orientation1.w << std::endl;
 
 
-        std::cout << "origin" << " x : " << std::left << std::setw(10) << devicePose.mDeviceToAbsoluteTracking.m[0][3] * METERTOUNREALUNITS - *ini_x
+        /*std::cout << "origin" << " x : " << std::left << std::setw(10) << devicePose.mDeviceToAbsoluteTracking.m[0][3] * METERTOUNREALUNITS - *ini_x
             << ", y : " << std::left << std::setw(10) << devicePose.mDeviceToAbsoluteTracking.m[1][3] * METERTOUNREALUNITS - *ini_y
             << ", z : " << std::left << std::setw(10) << -devicePose.mDeviceToAbsoluteTracking.m[2][3] * METERTOUNREALUNITS - *ini_z
             << ", q.x : " << std::left << std::setw(10) << orientation2.x
             << ", q.y : " << std::left << std::setw(10) << orientation2.y
             << ", q.z : " << std::left << std::setw(10) << orientation2.z
-            << ", q.w : " << std::left << std::setw(10) << orientation2.w << std::endl;
+            << ", q.w : " << std::left << std::setw(10) << orientation2.w << std::endl;*/
 
 
-            ////data save
-            //outputFile << seconds.time_since_epoch().count() << "."
-            //    << fractional_seconds.count()
-            //    << " " << (devicePose.mDeviceToAbsoluteTracking.m[0][3] * METERTOUNREALUNITS - *ini_x - ::cam_ini_x) / 100
-            //    << " " << (devicePose.mDeviceToAbsoluteTracking.m[1][3] * METERTOUNREALUNITS - *ini_y - ::cam_ini_y) / 100
-            //    << " " << (-devicePose.mDeviceToAbsoluteTracking.m[2][3] * METERTOUNREALUNITS - *ini_z - ::cam_ini_z) / 100
-            //    << " " << orientation.x
-            //    << " " << orientation.y
-            //    << " " << orientation.z
-            //    << " " << orientation.w << std::endl;
+            /*auto fractional_seconds_count = fractional_seconds.count();
+            std::string fractional_seconds_str = std::to_string(fractional_seconds_count);
 
-        Sleep(1000);
+            while (fractional_seconds_str.size() < 6) {
+                fractional_seconds_str = "0" + fractional_seconds_str;
+            }*/
+
+            std::string number = std::to_string(microseconds.time_since_epoch().count());
+            number.pop_back();
+
+            // Insert a dot at the sixth position from the end
+            number.insert(number.length() - 5, 1, '.');
+
+
+
+            //data save
+            outputFile << number
+                << " " << (-pose1(2, 3) * METERTOUNREALUNITS - *ini_z - ::cam_ini_z) / 100
+                << " " << -(pose1(0, 3) * METERTOUNREALUNITS - *ini_x - ::cam_ini_x) / 100
+                << " " << (pose1(1, 3) * METERTOUNREALUNITS - *ini_y - ::cam_ini_y) / 100
+                << " " << orientation1.x
+                << " " << -orientation1.y
+                << " " << orientation1.z
+                << " " << orientation1.w << std::endl;
+        //Sleep(1000);
     }
-    //tracker dist error
+
     else if (identifier != 0 && a && *ini_x != 0.0) {
+        Eigen::Matrix4f eigenMatrix;
+        for (int i = 0; i < 4; ++i) {
+            for (int j = 0; j < 4; ++j) {
+                eigenMatrix(i, j) = pose.M[j][i];
+            }
+        }
+
+        std::cout << eigenMatrix << std::endl;
         double distance = sqrt(((devicePose.mDeviceToAbsoluteTracking.m[0][3] * METERTOUNREALUNITS - *ini_x) * (devicePose.mDeviceToAbsoluteTracking.m[0][3] * METERTOUNREALUNITS - *ini_x)) + ((devicePose.mDeviceToAbsoluteTracking.m[1][3] * METERTOUNREALUNITS - *ini_y) * (devicePose.mDeviceToAbsoluteTracking.m[1][3] * METERTOUNREALUNITS - *ini_y)) + ((-devicePose.mDeviceToAbsoluteTracking.m[2][3] * METERTOUNREALUNITS - *ini_z) * (-devicePose.mDeviceToAbsoluteTracking.m[2][3] * METERTOUNREALUNITS - *ini_z)));
         std::cout << identifier << " x' : " << std::left << std::setw(10) << devicePose.mDeviceToAbsoluteTracking.m[0][3] * METERTOUNREALUNITS - *ini_x
             << " y' : " << std::left << std::setw(10) << devicePose.mDeviceToAbsoluteTracking.m[1][3] * METERTOUNREALUNITS - *ini_y
             << " z' : " << std::left << std::setw(10) << -devicePose.mDeviceToAbsoluteTracking.m[2][3] * METERTOUNREALUNITS - *ini_z
+            << ", q.x : " << std::left << std::setw(10) << orientation.x
+            << ", q.y : " << std::left << std::setw(10) << orientation.y
+            << ", q.z : " << std::left << std::setw(10) << orientation.z
+            << ", q.w : " << std::left << std::setw(10) << orientation.w
             << " distance : " << distance << std::endl;
-
     }
-
 };
 
 void VRTrackerReader::printInformationAboutConnectedDevices() {

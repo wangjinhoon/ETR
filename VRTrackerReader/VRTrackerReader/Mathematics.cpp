@@ -1,5 +1,5 @@
 #include "Mathematics.h"
-
+#include <iostream>
 Quaternion toQuaternion(const Matrix4X4& M)
 {
 	Quaternion quat;
@@ -7,7 +7,9 @@ Quaternion toQuaternion(const Matrix4X4& M)
 
 	// Check diagonal (trace)
 	const float tr = M.M[0][0] + M.M[1][1] + M.M[2][2];
-
+	//std::cout << "tr1 : " << M.M[0][0] << std::endl;
+	//std::cout << "tr2 : " << M.M[1][1] << std::endl;
+	//std::cout << "tr3 : " << M.M[2][2] << std::endl;
 	if (tr > 0.0f)
 	{
 		float InvS = 1.f / std::sqrt(tr + 1.f);
@@ -34,7 +36,7 @@ Quaternion toQuaternion(const Matrix4X4& M)
 		const int32_t k = nxt[j];
 
 		s = M.M[i][i] - M.M[j][j] - M.M[k][k] + 1.0f;
-
+		//std::cout << "s : " << s << std::endl;
 		float InvS = 1.f / std::sqrt(s);
 
 		float qt[4];
@@ -43,6 +45,7 @@ Quaternion toQuaternion(const Matrix4X4& M)
 		s = 0.5f * InvS;
 
 		qt[3] = (M.M[j][k] - M.M[k][j]) * s;
+		//std::cout << " qt3 : " << qt[3] << std::endl;
 		qt[j] = (M.M[i][j] + M.M[j][i]) * s;
 		qt[k] = (M.M[i][k] + M.M[k][i]) * s;
 
@@ -60,7 +63,9 @@ Quaternion toQuaternion(const Eigen::Matrix4f& M) {
 
 	// Check diagonal (trace)
 	const float tr = M(0, 0) + M(1, 1) + M(2, 2);
-
+	//std::cout << "i made tr1 : " << M(0, 0) << std::endl;
+	//std::cout << "i made tr2 : " << M(1, 1) << std::endl;
+	//std::cout << "i made tr3 : " << M(2, 2) << std::endl;
 	if (tr > 0.0f) {
 		float InvS = 1.f / std::sqrt(tr + 1.f);
 		quat.w = -0.5f * (1.f / InvS);
@@ -85,15 +90,16 @@ Quaternion toQuaternion(const Eigen::Matrix4f& M) {
 		const int32_t k = nxt[j];
 
 		s = M(i, i) - M(j, j) - M(k, k) + 1.0f;
-
+		//std::cout << "i made s : " << s << std::endl;
 		float InvS = 1.f / std::sqrt(s);
 
 		float qt[4];
 		qt[i] = 0.5f * (1.f / InvS);
 
 		s = 0.5f * InvS;
-
+		
 		qt[3] = (M(j, k) - M(k, j)) * s;
+		//std::cout << "i made qt3 : " << qt[3] << std::endl;
 		qt[j] = (M(i, j) + M(j, i)) * s;
 		qt[k] = (M(i, k) + M(k, i)) * s;
 

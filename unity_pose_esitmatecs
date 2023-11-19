@@ -52,154 +52,24 @@ public class RobotVisualizer : MonoBehaviour
         receiveThread.Start();
         print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
     }
-    //        bRoll_ = Roll_;
-    //        bPitch_ = Pitch_;
-    //        bYaw_ = Yaw_;
-    //        positionUpdated = false;
 
     void Update()
     {
+        if (positionUpdated)
         {
-            if (positionUpdated) { transform.rotation = Quaternion.Euler(Pitch_, Yaw_, Roll_); positionUpdated = false; }
-            //if (positionUpdated)
-            //{
-            //    if (Mathf.Abs(bRoll_ - Roll_) > 150 && flag == 2)
-            //    {
-            //        print("bRoll_1 : " + (bRoll_));
-            //        print("Roll_1 : " + (Roll_));
-            //        print("flag = 1 and bRoll_ - Roll_ : " + (bRoll_ - Roll_));
-            //        flag = 1;//바꾸기
+            transform.position = targetPosition;
+            transform.rotation = DeviceWorldRotation_to_UnityWorldRotation_v2(Roll_, Pitch_, Yaw_);
 
-            //    }
-            //    else if (Mathf.Abs(bRoll_ - Roll_) > 150 && flag == 1)
-            //    {
-            //        print("bRoll_2 : " + (bRoll_));
-            //        print("Roll_2 : " + (Roll_));
-            //        print("flag = 2 and bRoll_ - Roll_ : " + (bRoll_ - Roll_));
-            //        flag = 2;//그대로
-
-            //    }
-
-            //    if (flag == 1)
-            //    {
-
-            //        Roll_2 = Roll_ + 180;
-            //        //bPitch_ 150
-            //        //Pitch_ 30
-
-            //        if (Pitch_ > 0)
-            //        {
-            //            Pitch_ = 180 - Pitch_;
-            //        }
-            //        else if (Pitch_ < 0)
-            //        {
-            //            Pitch_ = -180 - Pitch_;
-            //        }
-            //        //bYaw_: 150                           bYaw : -30
-            //        //Yaw: 151 + 180 --> -29               Yaw : - 31 + 180  -> 149
-            //        //Yaw_ = Yaw_ - 180;
-            //        if (Yaw_ > 0)
-            //        {
-            //            Yaw_ = Yaw_ - 180;
-            //        }
-            //        else if (Yaw_ < 0)
-            //        {
-            //            Yaw_ = Yaw_ + 180;
-            //        }
-
-
-            //        print("flag = 1 : Rotate");
-            //        print("Roll_2 : " + Roll_2);
-            //        transform.position = targetPosition;
-            //        Quaternion currentRotation = transform.rotation;
-            //        //transform.eulerAngles = targetRotation;
-            //        transform.eulerAngles = new Vector3(0, 0, 0);
-
-
-            //        Matrix4x4 obrotationMatrix = Matrix4x4.Rotate(currentRotation);
-            //        print(" before_Pitch_ : " + Pitch_ + " before_Yaw_ : " + Yaw_ + " before_Roll_1 : " + -Roll_2);
-            //        Quaternion rotationQuaternion = Quaternion.Euler(Pitch_, Yaw_, -Roll_2);
-            //        Matrix4x4 rotationMatrix = Matrix4x4.Rotate(rotationQuaternion);
-
-            //        Matrix4x4 resultMatrix = obrotationMatrix * rotationMatrix;
-
-            //        Quaternion rotationQuaternion2 = resultMatrix.rotation;
-
-            //        // Quaternion을 Euler 각도로 변환
-            //        Vector3 eulerAngles = rotationQuaternion2.eulerAngles;
-
-
-
-            //        print(" after_Pitch_ : " + eulerAngles.x + " after_Yaw_ : " + eulerAngles.y + " after_Roll_1 : " + eulerAngles.z);
-
-            //        //transform.Rotate(0.0f, eulerAngles.y, 0.0f, Space.World);
-
-            //        //transform.Rotate(eulerAngles.x, 0.0f, 0.0f, Space.Self);
-
-            //        //transform.Rotate(0.0f, 0.0f, eulerAngles.z, Space.Self);
-
-            //        transform.Rotate(0.0f, Yaw_, 0.0f, Space.World);
-
-            //        transform.Rotate(Pitch_, 0.0f, 0.0f, Space.Self);
-
-            //        transform.Rotate(0.0f, 0.0f, -Roll_2, Space.Self);
-
-
-            //        bRoll_ = Roll_2 - 180;
-            //        bPitch_ = Pitch_;
-            //        bYaw_ = Yaw_;
-            //        positionUpdated = false;
-            //    }
-            //    else
-            //    {
-            //        print("flag = 2 : Rotate");
-            //        transform.position = targetPosition;
-            //        // transform.eulerAngles = targetRotation;
-            //        Quaternion currentRotation = transform.rotation;
-            //        transform.eulerAngles = new Vector3(0, 0, 0);
-            //        Matrix4x4 obrotationMatrix = Matrix4x4.Rotate(currentRotation);
-
-
-            //        print(" before_Pitch_ : " + Pitch_ + " before_Yaw_ : " + Yaw_ + " before_Roll_2 : " + -Roll_);
-            //        Quaternion rotationQuaternion = Quaternion.Euler(Pitch_, Yaw_, -Roll_);
-            //        Matrix4x4 rotationMatrix = Matrix4x4.Rotate(rotationQuaternion);
-            //        print(obrotationMatrix);
-            //        Matrix4x4 resultMatrix = obrotationMatrix * rotationMatrix;
-
-            //        Quaternion rotationQuaternion2 = resultMatrix.rotation;
-            //        // Quaternion을 Euler 각도로 변환
-            //        Vector3 eulerAngles = rotationQuaternion2.eulerAngles;
-
-            //        print(" after_Pitch_ : " + eulerAngles.x + " after_Yaw_ : " + eulerAngles.y + " after_Roll_2 : " + eulerAngles.z);
-
-            //        //transform.Rotate(0.0f, eulerAngles.y, 0.0f, Space.World);
-
-            //        //transform.Rotate(eulerAngles.x, 0.0f, 0.0f, Space.Self);
-
-            //        //transform.Rotate(0.0f, 0.0f, eulerAngles.z, Space.Self);
-
-
-            //        transform.Rotate(0.0f, Yaw_, 0.0f, Space.World);
-
-            //        transform.Rotate(Pitch_, 0.0f, 0.0f, Space.Self);
-
-            //        transform.Rotate(0.0f, 0.0f, -Roll_, Space.Self);
-
-
-            //        bRoll_ = Roll_;
-            //        bPitch_ = Pitch_;
-            //        bYaw_ = Yaw_;
-            //        positionUpdated = false;
-            //    }
-            //}
-            //else
-            //{
-            //    transform.Rotate(0.0f, 0.0f, 0.0f, Space.World);
-            //    transform.Rotate(0.0f, 0.0f, 0.0f, Space.Self);
-            //    transform.Rotate(0.0f, 0.0f, 0.0f, Space.Self);
-
-
+            positionUpdated = false;
         }
+    }
+
+    public Quaternion DeviceWorldRotation_to_UnityWorldRotation_v2(float roll, float pitch, float yaw)
+    {
+        return
+            Quaternion.Euler(0, 0, -roll) *
+            Quaternion.Euler(pitch, 0, 0) *
+            Quaternion.Euler(0, -yaw, 0);
     }
 
     void ReceiveData()
@@ -224,13 +94,9 @@ public class RobotVisualizer : MonoBehaviour
             Convert.ToSingle(values[1]) + 0,
             Convert.ToSingle(values[2]) + 0);
 
-        //Vector3 rotation = new Vector3(
-        //    Convert.ToSingle(values[4]),
-        //    -Convert.ToSingle(values[5]),
-        //    -Convert.ToSingle(values[3]));
         Roll_ = Convert.ToSingle(values[3]);
         Pitch_ = Convert.ToSingle(values[4]);
-        Yaw_ = -Convert.ToSingle(values[5]);
+        Yaw_ = Convert.ToSingle(values[5]);
 
 
         targetPosition = position;

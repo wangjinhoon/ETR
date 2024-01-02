@@ -41,8 +41,8 @@ C:\Program Files (x86)\Open3D\include\open3d\core\SmallVector.h(1260): message :
           ]
 C:\Program Files (x86)\Open3D\include\open3d\core\SizeVector.h(31): message : see reference to class template instantiation 'open3d::core::SmallVector<open3d::utility::optional<int64_t>,4>' being compiled
   Generating code
-  1 of 473 functions ( 0.2%) were compiled, the rest were copied from previous compilation.
+  1 of 593 functions ( 0.2%) were compiled, the rest were copied from previous compilation.
     0 functions were new in current compilation
-    48 functions had inline decision re-evaluated but remain unchanged
+    1 functions had inline decision re-evaluated but remain unchanged
   Finished generating code
   ConsoleApplication4.vcxproj -> C:\Users\jh813\source\repos\ConsoleApplication4\x64\Release\ConsoleApplication4.exe

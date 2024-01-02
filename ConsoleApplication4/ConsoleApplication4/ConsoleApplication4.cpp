@@ -1,14 +1,17 @@
-#include <iostream>
+﻿#include <iostream>
 #include <vector>
 #include <Open3D/Open3D.h>
 #include<queue>
 using namespace std;
 
-int main() {
+int ply2obj(const string& arg_inputPath, const string& arg_outputPath) {
     // Define input and output paths
     using namespace open3d;
-    std::string input_path = "C:\\Users\\jh813\\source\\repos\\ConsoleApplication4\\cloud5.ply";
-    std::string output_file_path = "C:\\Users\\jh813\\test.obj";
+    //std::string input_path = "C:\\Users\\jh813\\source\\repos\\ConsoleApplication4\\cloud5.ply";
+    //std::string output_file_path = "C:\\Users\\jh813\\test.obj";
+
+    std::string input_path = arg_inputPath;
+    std::string output_file_path = arg_outputPath;
 
 
     // Load point cloud
@@ -77,4 +80,18 @@ int main() {
     }
 
     return 0;
+}
+
+int main(int argc, char* argv[])
+{
+    if (argc != 3) {
+        std::cout << "사용법: " <<  "파일명, 입력경로, 출력경로" << std::endl;
+        return 1;
+    }
+    std::string inputPath = argv[1];
+    std::string outputPath = argv[2];
+    std::cout  << inputPath << std::endl;
+    std::cout  << outputPath << std::endl;
+
+    ply2obj(inputPath, outputPath);
 }

@@ -82,9 +82,10 @@ private:
 public:
 	bool configurationMode = false;
 	void run();
+	void run(int cam_input, int ini_input);
 	void printInformationAboutConnectedDevices();
 	std::string FileCreate();
-	void getData(TrackingData& data, uint32_t identifier, std::ofstream& outputFile, float* ini_x, float* ini_y, float* ini_z, bool a);
+	void getData(TrackingData& data, uint32_t identifier, std::ofstream& outputFile, float* ini_x, float* ini_y, float* ini_z, bool a, int cam_input, int out_input);
 	void setTrackingResult(TrackingData& data, vr::ETrackingResult result);	std::string getManufacturerInformation(vr::TrackedDeviceIndex_t device);
 
 	void createConfigurationFile();

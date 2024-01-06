@@ -82,6 +82,7 @@ private:
 public:
 	bool configurationMode = false;
 	void run();
+	void printInformationAboutConnectedDevice();
 	void run(int cam_input, int ini_input);
 	void printInformationAboutConnectedDevices();
 	std::string FileCreate();

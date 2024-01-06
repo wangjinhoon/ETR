@@ -11,6 +11,7 @@ const double PI = std::acos(-1);
 float cam_ini_x = 0.0;
 float cam_ini_y = 0.0;
 float cam_ini_z = 0.0;
+Eigen::Matrix4f ini_rotationMatrix;
 
 // Function to create a 4x4 matrix from rotation and translation
 Eigen::Matrix4f composeMatrix(const Eigen::Matrix3f& rotation, const Eigen::Vector3f& translation) {
@@ -23,12 +24,11 @@ Eigen::Matrix4f composeMatrix(const Eigen::Matrix3f& rotation, const Eigen::Vect
 Eigen::Matrix3f createRotationMatrix() {
 
     Eigen::Matrix3f rotationMatrixY;
-    // 트래커와 
+
     rotationMatrixY << 1, 0, 0,
         0, 0, 1,
         0, -1, 0;
 
-    // Combine the rotation matrices
     Eigen::Matrix3f combinedRotationMatrix = rotationMatrixY;
 
     return combinedRotationMatrix;
@@ -73,9 +73,8 @@ void VRTrackerReader::getData(TrackingData& data, uint32_t identifier, std::ofst
 
     int cam = cam_input; //here is cam's tracker number
     int ini = ini_input;
-
     Quaternion orientation = toQuaternion(pose);
-    //basic
+    //초기 원점 좌표로 부터 초기화용 트래커 까지의 거리를 출력
     if (identifier == ini && *ini_x == 0.0 && *ini_y == 0.0 && *ini_z == 0.0 && !a) {
         Eigen::Quaterniond q(orientation.w, orientation.x, orientation.y, orientation.z);
 
@@ -87,16 +86,23 @@ void VRTrackerReader::getData(TrackingData& data, uint32_t identifier, std::ofst
             << ", q.z : " << std::left << std::setw(10) << orientation.z
             << ", q.w : " << std::left << std::setw(10) << orientation.w << std::endl;
     }
-    //initilization
+    //초기화용 트래커를 원점으로 만들기 위해 현재 초기화용 트래커의 x, y, z 값 저장
     if (identifier == ini && *ini_x == 0.0 && *ini_y == 0.0 && *ini_z == 0.0 && a) {
         *ini_x = devicePose.mDeviceToAbsoluteTracking.m[0][3] * METERTOUNREALUNITS;
         *ini_y = devicePose.mDeviceToAbsoluteTracking.m[1][3] * METERTOUNREALUNITS;
         *ini_z = -devicePose.mDeviceToAbsoluteTracking.m[2][3] * METERTOUNREALUNITS;
-
-        std::cout << " inilization!!!!! " << std::endl;
+        
+        for (int i = 0; i < 4; ++i) {
+            for (int j = 0; j < 4; ++j) {
+                ::ini_rotationMatrix(i, j) = pose.M[j][i];
+            }
+        }
+        std::cout << " inilization!!!!! " << " *ini_x : " << *ini_x
+            << " *ini_y : " << *ini_y
+            << " *ini_z : " << *ini_z << std::endl;
     }
 
-    //cam_initilization
+    //카메라 위치 저장용 트래커의 이니셜 트래커 기준의 x, y, z 저장
     else if (identifier == cam && ::cam_ini_x == 0.0 && ::cam_ini_y == 0.0 && ::cam_ini_z == 0.0 && a && *ini_x != 0.0) {
         Eigen::Matrix4f pose1 = printSymmetricMatrix(pose);
         ::cam_ini_x = pose1(0, 3) * METERTOUNREALUNITS - *ini_x;
@@ -116,13 +122,13 @@ void VRTrackerReader::getData(TrackingData& data, uint32_t identifier, std::ofst
         Eigen::Matrix4f tracker_to_cam_pose = printSymmetricMatrix(pose);
 
         Quaternion cam_orientation = toQuaternion(tracker_to_cam_pose);
-        std::cout << "cam_tracker : " << identifier << " x : " << std::left << std::setw(10) << tracker_to_cam_pose(0, 3) * METERTOUNREALUNITS - *ini_x
-            << ", y : " << std::left << std::setw(10) << tracker_to_cam_pose(1, 3) * METERTOUNREALUNITS - *ini_y
-            << ", z : " << std::left << std::setw(10) << -tracker_to_cam_pose(2, 3) * METERTOUNREALUNITS - *ini_z
-            << ", q.x : " << std::left << std::setw(10) << cam_orientation.x
-            << ", q.y : " << std::left << std::setw(10) << cam_orientation.y
-            << ", q.z : " << std::left << std::setw(10) << cam_orientation.z
-            << ", q.w : " << std::left << std::setw(10) << cam_orientation.w << std::endl;
+        //std::cout << "cam_tracker : " << identifier << " x : " << std::left << std::setw(10) << tracker_to_cam_pose(0, 3) * METERTOUNREALUNITS - *ini_x
+        //    << ", y : " << std::left << std::setw(10) << tracker_to_cam_pose(1, 3) * METERTOUNREALUNITS - *ini_y
+        //    << ", z : " << std::left << std::setw(10) << -tracker_to_cam_pose(2, 3) * METERTOUNREALUNITS - *ini_z
+        //    << ", q.x : " << std::left << std::setw(10) << cam_orientation.x
+        //    << ", q.y : " << std::left << std::setw(10) << cam_orientation.y
+        //    << ", q.z : " << std::left << std::setw(10) << cam_orientation.z
+        //    << ", q.w : " << std::left << std::setw(10) << cam_orientation.w << std::endl;
             
 
         //current time
@@ -152,7 +158,30 @@ void VRTrackerReader::getData(TrackingData& data, uint32_t identifier, std::ofst
 
     //other tracker data position and distance 
     else if (identifier != 0 && a && *ini_x != 0.0) {
-        double distance = sqrt(((devicePose.mDeviceToAbsoluteTracking.m[0][3] * METERTOUNREALUNITS - *ini_x) * (devicePose.mDeviceToAbsoluteTracking.m[0][3] * METERTOUNREALUNITS - *ini_x)) + ((devicePose.mDeviceToAbsoluteTracking.m[1][3] * METERTOUNREALUNITS - *ini_y) * (devicePose.mDeviceToAbsoluteTracking.m[1][3] * METERTOUNREALUNITS - *ini_y)) + ((-devicePose.mDeviceToAbsoluteTracking.m[2][3] * METERTOUNREALUNITS - *ini_z) * (-devicePose.mDeviceToAbsoluteTracking.m[2][3] * METERTOUNREALUNITS - *ini_z)));
+        // Convert Matrix4X4 to Eigen::Matrix4f
+        Eigen::Matrix4f convert_eigenMatrix;
+        for (int i = 0; i < 4; ++i) {
+            for (int j = 0; j < 4; ++j) {
+                convert_eigenMatrix(i, j) = pose.M[j][i];
+            }
+        }
+
+
+        Eigen::Matrix4f T_new;
+        T_new = ::ini_rotationMatrix.inverse() * convert_eigenMatrix;
+        Quaternion orientation = toQuaternion(T_new);
+        double distance = sqrt(((T_new.coeff(0,3) * METERTOUNREALUNITS) * (T_new.coeff(0, 3) * METERTOUNREALUNITS)) + ((T_new.coeff(1, 3) * METERTOUNREALUNITS) * (T_new.coeff(1, 3) * METERTOUNREALUNITS)) + ((-(T_new.coeff(2, 3)) * METERTOUNREALUNITS) * (-(T_new.coeff(2, 3)) * METERTOUNREALUNITS)));
+        std::cout << "other_tracker : " << identifier << " x' : " << std::left << std::setw(10) << T_new.coeff(0, 3) * METERTOUNREALUNITS
+            << " y' : " << std::left << std::setw(10) << T_new.coeff(1, 3) * METERTOUNREALUNITS
+            << " z' : " << std::left << std::setw(10) << -T_new.coeff(2, 3) * METERTOUNREALUNITS
+            << ", q.x : " << std::left << std::setw(10) << orientation.x
+            << ", q.y : " << std::left << std::setw(10) << orientation.y
+            << ", q.z : " << std::left << std::setw(10) << orientation.z
+            << ", q.w : " << std::left << std::setw(10) << orientation.w
+            << " distance : " << distance << std::endl;
+
+
+        /*double distance = sqrt(((devicePose.mDeviceToAbsoluteTracking.m[0][3] * METERTOUNREALUNITS - *ini_x) * (devicePose.mDeviceToAbsoluteTracking.m[0][3] * METERTOUNREALUNITS - *ini_x)) + ((devicePose.mDeviceToAbsoluteTracking.m[1][3] * METERTOUNREALUNITS - *ini_y) * (devicePose.mDeviceToAbsoluteTracking.m[1][3] * METERTOUNREALUNITS - *ini_y)) + ((-devicePose.mDeviceToAbsoluteTracking.m[2][3] * METERTOUNREALUNITS - *ini_z) * (-devicePose.mDeviceToAbsoluteTracking.m[2][3] * METERTOUNREALUNITS - *ini_z)));
         std::cout << "other_tracker : " << identifier << " x' : " << std::left << std::setw(10) << devicePose.mDeviceToAbsoluteTracking.m[0][3] * METERTOUNREALUNITS - *ini_x
             << " y' : " << std::left << std::setw(10) << devicePose.mDeviceToAbsoluteTracking.m[1][3] * METERTOUNREALUNITS - *ini_y
             << " z' : " << std::left << std::setw(10) << -devicePose.mDeviceToAbsoluteTracking.m[2][3] * METERTOUNREALUNITS - *ini_z
@@ -160,7 +189,7 @@ void VRTrackerReader::getData(TrackingData& data, uint32_t identifier, std::ofst
             << ", q.y : " << std::left << std::setw(10) << orientation.y
             << ", q.z : " << std::left << std::setw(10) << orientation.z
             << ", q.w : " << std::left << std::setw(10) << orientation.w
-            << " distance : " << distance << std::endl;
+            << " distance : " << distance << std::endl;*/
     }
 };
 
@@ -247,6 +276,35 @@ std::string VRTrackerReader::FileCreate() {
     return fileName;
 }
 
+void VRTrackerReader::printInformationAboutConnectedDevices() {
+	for (vr::TrackedDeviceIndex_t unDevice = 0; unDevice < vr::k_unMaxTrackedDeviceCount; unDevice++) {
+		if (vrSystem->IsTrackedDeviceConnected(unDevice)) {
+			std::cout << "Index: " << unDevice << " Class: ";
+			switch (vrSystem->GetTrackedDeviceClass(unDevice)) {
+			case vr::TrackedDeviceClass_Controller:
+				std::cout << "Controller ";
+				break;
+			case vr::TrackedDeviceClass_DisplayRedirect:
+				std::cout << "Redirect ";
+				break;
+			case vr::TrackedDeviceClass_GenericTracker:
+				std::cout << "Tracker ";
+				break;
+			case vr::TrackedDeviceClass_HMD:
+				std::cout << "HMD ";
+				break;
+			case vr::TrackedDeviceClass_TrackingReference:
+				std::cout << "Tracking Reference ";
+				break;
+			default:
+				std::cerr << "Error: No valid device class detected!" << std::endl;
+				break;
+			}
+			std::cout << getManufacturerInformation(unDevice) << std::endl;
+		}
+	}
+}
+
 void VRTrackerReader::run() {
 
     VRTrackerReader v;
@@ -319,11 +377,28 @@ void VRTrackerReader::run(int cam_input_, int ini_input_) {
 
         for (auto& openVRIdAndUnrealId : openVRIDAndUnrealIDs) {
             std::this_thread::sleep_for(std::chrono::milliseconds(5));
+            
             TrackingData data;
             getData(data, openVRIdAndUnrealId.openVRID, outputFile, &ini_x, &ini_y, &ini_z, a, cam_input, ini_input);
         }
     }
 }
+
+void VRTrackerReader::printInformationAboutConnectedDevice(){
+    VRTrackerReader v;
+
+    vr::EVRInitError eError = vr::VRInitError_None;
+    vrSystem = vr::VR_Init(&eError, vr::VRApplication_Background);
+    if (eError != vr::VRInitError_None)
+    {
+        vrSystem = NULL;
+        std::cout << "Unable to init VR runtime: " << vr::VR_GetVRInitErrorAsEnglishDescription(eError) << std::endl;
+        exit(0);
+    }
+
+    printInformationAboutConnectedDevices();
+}
+
 
 int main(int argc, char* argv[])
 {
@@ -334,6 +409,14 @@ int main(int argc, char* argv[])
         std::cout << "Will create configuration based of currently connected devices." << std::endl;
 
         v.run();
+    }
+    else if (argc == 2 && std::string(argv[1]) == "-a") {
+        v.printInformationAboutConnectedDevice();
+        return 1;
+    }
+    else if (argc == 2) {
+        std::cout << "exe, cam_input, ini_input" << std::endl;
+        return 1;
     }
     else if (argc == 3){
         int cam_input = std::atoi(argv[1]);

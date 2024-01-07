@@ -21,6 +21,8 @@ Eigen::Matrix4f composeMatrix(const Eigen::Matrix3f& rotation, const Eigen::Vect
     return resultMatrix;
 }
 
+
+// 트래커를 카메라 좌표계와 일치시키기 위한 로데이텬 매트릭스 생성
 Eigen::Matrix3f createRotationMatrix() {
 
     Eigen::Matrix3f rotationMatrixY;
@@ -34,6 +36,7 @@ Eigen::Matrix3f createRotationMatrix() {
     return combinedRotationMatrix;
 }
 
+// 현재 트래커를 카메라 좌표계로 변환하기 위한 매트릭스 생성
 Eigen::Matrix4f printSymmetricMatrix(const Matrix4X4& matrix) {
     Eigen::Vector3f delta_displacement(0.0f, 0.0f, -0.05f);
     Eigen::Matrix3f delta_rotation = createRotationMatrix();
@@ -60,23 +63,44 @@ Eigen::Matrix4f printSymmetricMatrix(const Matrix4X4& matrix) {
     return resultMatrix;
 }
 
+Eigen::Matrix4f printSymmetricMatrix(const Eigen::Matrix4f& matrix) {
+    Eigen::Vector3f delta_displacement(0.0f, 0.0f, -0.05f);
+    Eigen::Matrix3f delta_rotation = createRotationMatrix();
+
+    Eigen::Matrix3f tracker_rotation = matrix.block<3, 3>(0, 0);
+
+    Eigen::Vector3f tracker_position = matrix.block<3, 1>(0, 3);
+
+    Eigen::Matrix3f rotation = tracker_rotation * delta_rotation;
+
+    Eigen::Vector3f position = tracker_position + ((rotation)*delta_displacement);
+
+    Eigen::Matrix4f resultMatrix = composeMatrix(rotation, position);
+
+    return resultMatrix;
+}
+
 void VRTrackerReader::getData(TrackingData& data, uint32_t identifier, std::ofstream& outputFile, float* ini_x, float* ini_y, float* ini_z, bool a, int cam_input, int ini_input) {
     vr::TrackedDevicePose_t devicePose;
     vr::VRControllerState_t controllerState;
 
+    //현재 장치의 Pose 값 받아옴
     vr::VRSystem()->GetControllerStateWithPose(vr::TrackingUniverseStanding, identifier, &controllerState, sizeof(controllerState), &devicePose);
 
     data.position = getPosition(devicePose.mDeviceToAbsoluteTracking);
     //setTrackingResult(data, devicePose.eTrackingResult);
 
+    // Matrix4X4 형으로 변환
     Matrix4X4 pose(devicePose.mDeviceToAbsoluteTracking);
 
-    int cam = cam_input; //here is cam's tracker number
+    int cam = cam_input;
     int ini = ini_input;
+
+    // pose 변수로 부터 쿼터니언 값 추출
     Quaternion orientation = toQuaternion(pose);
     //초기 원점 좌표로 부터 초기화용 트래커 까지의 거리를 출력
     if (identifier == ini && *ini_x == 0.0 && *ini_y == 0.0 && *ini_z == 0.0 && !a) {
-        Eigen::Quaterniond q(orientation.w, orientation.x, orientation.y, orientation.z);
+        //Eigen::Quaterniond q(orientation.w, orientation.x, orientation.y, orientation.z);
 
         std::cout << identifier << "ini_before => x : " << std::left << std::setw(10) << devicePose.mDeviceToAbsoluteTracking.m[0][3] * METERTOUNREALUNITS
             << ", y : " << std::left << std::setw(10) << devicePose.mDeviceToAbsoluteTracking.m[1][3] * METERTOUNREALUNITS
@@ -86,7 +110,7 @@ void VRTrackerReader::getData(TrackingData& data, uint32_t identifier, std::ofst
             << ", q.z : " << std::left << std::setw(10) << orientation.z
             << ", q.w : " << std::left << std::setw(10) << orientation.w << std::endl;
     }
-    //초기화용 트래커를 원점으로 만들기 위해 현재 초기화용 트래커의 x, y, z 값 저장
+    //초기화용 트래커를 원점으로 만들기 위해 현재 초기화용 트래커의 x, y, z, 4x4 매트릭스 값 저장 -> 한번만 작동
     if (identifier == ini && *ini_x == 0.0 && *ini_y == 0.0 && *ini_z == 0.0 && a) {
         *ini_x = devicePose.mDeviceToAbsoluteTracking.m[0][3] * METERTOUNREALUNITS;
         *ini_y = devicePose.mDeviceToAbsoluteTracking.m[1][3] * METERTOUNREALUNITS;
@@ -102,33 +126,53 @@ void VRTrackerReader::getData(TrackingData& data, uint32_t identifier, std::ofst
             << " *ini_z : " << *ini_z << std::endl;
     }
 
-    //카메라 위치 저장용 트래커의 이니셜 트래커 기준의 x, y, z 저장
+    //카메라의 시작 위치 저장용 트래커의 원점 기준의 x, y, z 저장 -> 한번만 작동
     else if (identifier == cam && ::cam_ini_x == 0.0 && ::cam_ini_y == 0.0 && ::cam_ini_z == 0.0 && a && *ini_x != 0.0) {
-        Eigen::Matrix4f pose1 = printSymmetricMatrix(pose);
-        ::cam_ini_x = pose1(0, 3) * METERTOUNREALUNITS - *ini_x;
-        ::cam_ini_y = pose1(1, 3) * METERTOUNREALUNITS - *ini_y;
-        ::cam_ini_z = -pose1(2, 3) * METERTOUNREALUNITS - *ini_z;
+        Eigen::Matrix4f convert_eigenMatrix;
+        for (int i = 0; i < 4; ++i) {
+            for (int j = 0; j < 4; ++j) {
+                convert_eigenMatrix(i, j) = pose.M[j][i];
+            }
+        }
+
+
+        Eigen::Matrix4f T_new;
+        T_new = ::ini_rotationMatrix.inverse() * convert_eigenMatrix;
+        Eigen::Matrix4f pose1 = printSymmetricMatrix(T_new);
+        ::cam_ini_x = pose1(0, 3) * METERTOUNREALUNITS;
+        ::cam_ini_y = pose1(1, 3) * METERTOUNREALUNITS;
+        ::cam_ini_z = -pose1(2, 3) * METERTOUNREALUNITS;
 
         outputFile << " *cam_x : " << ::cam_ini_x
             << " *cam_y : " << ::cam_ini_y
             << " *cam_z : " << ::cam_ini_z << std::endl;
     }
 
-    //get_cam_data
+    //카메라 추적용 트래커의 위치 데이터를 받아옴
     if (identifier == cam && a && *ini_x != 0.0) {
         auto currentTimePoint = std::chrono::system_clock::now();
         auto microseconds = std::chrono::time_point_cast<std::chrono::microseconds>(currentTimePoint);
 
-        Eigen::Matrix4f tracker_to_cam_pose = printSymmetricMatrix(pose);
+        Eigen::Matrix4f convert_eigenMatrix;
+        for (int i = 0; i < 4; ++i) {
+            for (int j = 0; j < 4; ++j) {
+                convert_eigenMatrix(i, j) = pose.M[j][i];
+            }
+        }
+
+
+        Eigen::Matrix4f T_new;
+        T_new = ::ini_rotationMatrix.inverse() * convert_eigenMatrix;
+        Eigen::Matrix4f tracker_to_cam_pose = printSymmetricMatrix(T_new);
 
         Quaternion cam_orientation = toQuaternion(tracker_to_cam_pose);
-        //std::cout << "cam_tracker : " << identifier << " x : " << std::left << std::setw(10) << tracker_to_cam_pose(0, 3) * METERTOUNREALUNITS - *ini_x
-        //    << ", y : " << std::left << std::setw(10) << tracker_to_cam_pose(1, 3) * METERTOUNREALUNITS - *ini_y
-        //    << ", z : " << std::left << std::setw(10) << -tracker_to_cam_pose(2, 3) * METERTOUNREALUNITS - *ini_z
-        //    << ", q.x : " << std::left << std::setw(10) << cam_orientation.x
-        //    << ", q.y : " << std::left << std::setw(10) << cam_orientation.y
-        //    << ", q.z : " << std::left << std::setw(10) << cam_orientation.z
-        //    << ", q.w : " << std::left << std::setw(10) << cam_orientation.w << std::endl;
+        std::cout << "cam_tracker : " << identifier << " x : " << std::left << std::setw(10) << tracker_to_cam_pose(0, 3) * METERTOUNREALUNITS
+            << ", y : " << std::left << std::setw(10) << tracker_to_cam_pose(1, 3) * METERTOUNREALUNITS
+            << ", z : " << std::left << std::setw(10) << -tracker_to_cam_pose(2, 3) * METERTOUNREALUNITS
+            << ", q.x : " << std::left << std::setw(10) << cam_orientation.x
+            << ", q.y : " << std::left << std::setw(10) << cam_orientation.y
+            << ", q.z : " << std::left << std::setw(10) << cam_orientation.z
+            << ", q.w : " << std::left << std::setw(10) << cam_orientation.w << std::endl;
             
 
         //current time
@@ -147,16 +191,16 @@ void VRTrackerReader::getData(TrackingData& data, uint32_t identifier, std::ofst
 
         //data save, coordinate adjustment
         outputFile << modifiedString
-            << " " << (-tracker_to_cam_pose(2, 3) * METERTOUNREALUNITS - *ini_z - ::cam_ini_z) / 100
-            << " " << -(tracker_to_cam_pose(0, 3) * METERTOUNREALUNITS - *ini_x - ::cam_ini_x) / 100
-            << " " << (tracker_to_cam_pose(1, 3) * METERTOUNREALUNITS - *ini_y - ::cam_ini_y) / 100
+            << " " << (-tracker_to_cam_pose(2, 3) * METERTOUNREALUNITS - ::cam_ini_z) / 100
+            << " " << -(tracker_to_cam_pose(0, 3) * METERTOUNREALUNITS - ::cam_ini_x) / 100
+            << " " << (tracker_to_cam_pose(1, 3) * METERTOUNREALUNITS - ::cam_ini_y) / 100
             << " " << cam_orientation.x
             << " " << -cam_orientation.y
             << " " << cam_orientation.z
             << " " << cam_orientation.w << std::endl;
     }
 
-    //other tracker data position and distance 
+    //카메라용 트래커가 아닌 다른 트래커의 위치 및 거리값을 받아옴 
     else if (identifier != 0 && a && *ini_x != 0.0) {
         // Convert Matrix4X4 to Eigen::Matrix4f
         Eigen::Matrix4f convert_eigenMatrix;
@@ -170,7 +214,10 @@ void VRTrackerReader::getData(TrackingData& data, uint32_t identifier, std::ofst
         Eigen::Matrix4f T_new;
         T_new = ::ini_rotationMatrix.inverse() * convert_eigenMatrix;
         Quaternion orientation = toQuaternion(T_new);
+
+        //원점으로 부터 현재 트래커 까지의 거리를 계산 
         double distance = sqrt(((T_new.coeff(0,3) * METERTOUNREALUNITS) * (T_new.coeff(0, 3) * METERTOUNREALUNITS)) + ((T_new.coeff(1, 3) * METERTOUNREALUNITS) * (T_new.coeff(1, 3) * METERTOUNREALUNITS)) + ((-(T_new.coeff(2, 3)) * METERTOUNREALUNITS) * (-(T_new.coeff(2, 3)) * METERTOUNREALUNITS)));
+        //트래커의 x, y, z, q.x, q.y, q.z, q.w, 거리 값 출력
         std::cout << "other_tracker : " << identifier << " x' : " << std::left << std::setw(10) << T_new.coeff(0, 3) * METERTOUNREALUNITS
             << " y' : " << std::left << std::setw(10) << T_new.coeff(1, 3) * METERTOUNREALUNITS
             << " z' : " << std::left << std::setw(10) << -T_new.coeff(2, 3) * METERTOUNREALUNITS
@@ -179,17 +226,6 @@ void VRTrackerReader::getData(TrackingData& data, uint32_t identifier, std::ofst
             << ", q.z : " << std::left << std::setw(10) << orientation.z
             << ", q.w : " << std::left << std::setw(10) << orientation.w
             << " distance : " << distance << std::endl;
-
-
-        /*double distance = sqrt(((devicePose.mDeviceToAbsoluteTracking.m[0][3] * METERTOUNREALUNITS - *ini_x) * (devicePose.mDeviceToAbsoluteTracking.m[0][3] * METERTOUNREALUNITS - *ini_x)) + ((devicePose.mDeviceToAbsoluteTracking.m[1][3] * METERTOUNREALUNITS - *ini_y) * (devicePose.mDeviceToAbsoluteTracking.m[1][3] * METERTOUNREALUNITS - *ini_y)) + ((-devicePose.mDeviceToAbsoluteTracking.m[2][3] * METERTOUNREALUNITS - *ini_z) * (-devicePose.mDeviceToAbsoluteTracking.m[2][3] * METERTOUNREALUNITS - *ini_z)));
-        std::cout << "other_tracker : " << identifier << " x' : " << std::left << std::setw(10) << devicePose.mDeviceToAbsoluteTracking.m[0][3] * METERTOUNREALUNITS - *ini_x
-            << " y' : " << std::left << std::setw(10) << devicePose.mDeviceToAbsoluteTracking.m[1][3] * METERTOUNREALUNITS - *ini_y
-            << " z' : " << std::left << std::setw(10) << -devicePose.mDeviceToAbsoluteTracking.m[2][3] * METERTOUNREALUNITS - *ini_z
-            << ", q.x : " << std::left << std::setw(10) << orientation.x
-            << ", q.y : " << std::left << std::setw(10) << orientation.y
-            << ", q.z : " << std::left << std::setw(10) << orientation.z
-            << ", q.w : " << std::left << std::setw(10) << orientation.w
-            << " distance : " << distance << std::endl;*/
     }
 };
 
@@ -335,14 +371,19 @@ void VRTrackerReader::run(int cam_input_, int ini_input_) {
 
     VRTrackerReader v;
 
+    //트래커 정보 저장용 파일 생성
     std::string fileName = v.FileCreate();
     std::ofstream outputFile("C:/Users/jh813" + fileName);
+
+    //트래커 초기화 때 사용할 변수 생성
     int cam_input = cam_input_;
     int ini_input = ini_input_;
     float ini_x = 0;
     float ini_y = 0;
     float ini_z = 0;
 
+
+    //VR 시스템 초기화 및 발생하는 오류 처리
     vr::EVRInitError eError = vr::VRInitError_None;
     vrSystem = vr::VR_Init(&eError, vr::VRApplication_Background);
     if (eError != vr::VRInitError_None)
@@ -352,8 +393,7 @@ void VRTrackerReader::run(int cam_input_, int ini_input_) {
         exit(0);
     }
 
-    //printInformationAboutConnectedDevices();
-
+    //Config 파일로 현재 연결된 장비 구성
     readConfigurationFile();
     applyConfiguration();
 
@@ -361,11 +401,13 @@ void VRTrackerReader::run(int cam_input_, int ini_input_) {
 
 
     while (true) {
+        //프로그램 종료 용 
         if (GetKeyState('C') & 0x8000 || GetKeyState(VK_ESCAPE) & 0x8000) {
             std::cout << "End of program" << std::endl;
             outputFile.close();
             exit(0);
         }
+        //초기화 용 
         if (GetKeyState('Q') & 0x8000 && a == FALSE) {
             std::cout << "initilization!" << std::endl;
             float ini_x = 0;
@@ -375,6 +417,7 @@ void VRTrackerReader::run(int cam_input_, int ini_input_) {
             a = TRUE;
         }
 
+        //현재 연결된 장치를 하나씩 getData에 입력으로 넣어줌
         for (auto& openVRIdAndUnrealId : openVRIDAndUnrealIDs) {
             std::this_thread::sleep_for(std::chrono::milliseconds(5));
             

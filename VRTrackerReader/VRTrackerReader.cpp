@@ -28,8 +28,8 @@ Eigen::Matrix3f createRotationMatrix() {
     Eigen::Matrix3f rotationMatrixY;
 
     rotationMatrixY << 1, 0, 0,
-        0, 0, 1,
-        0, -1, 0;
+                       0, 0, 1,
+                       0, -1, 0;
 
     Eigen::Matrix3f combinedRotationMatrix = rotationMatrixY;
 
@@ -37,11 +37,15 @@ Eigen::Matrix3f createRotationMatrix() {
 }
 
 // 현재 트래커를 카메라 좌표계로 변환하기 위한 매트릭스 생성
-Eigen::Matrix4f printSymmetricMatrix(const Matrix4X4& matrix) {
-    Eigen::Vector3f delta_displacement(0.0f, 0.0f, -0.05f);
-    Eigen::Matrix3f delta_rotation = createRotationMatrix();
+Eigen::Matrix4f T2C_coordinate(const Matrix4X4& matrix) {
+    Eigen::Vector3f delta_displacement(0.0f, 0.0f, -0.05f);//트래커를 카메라 위치로 이동, z축으로 -5cm
+    Eigen::Matrix3f delta_rotation = createRotationMatrix();//카메라 좌표계와 회전축을 맞추기 위한 행렬 생성
+                                                            //1, 0, 0
+                                                            //0, 0, 1
+                                                            //0, -1, 0 트래커의 로테이션 행렬이 이와 같은 값을 가지고 있어 역행렬을 곱해주어 카메라 좌표계와 일치하게끔 변환
+    
 
-    // Convert Matrix4X4 to Eigen::Matrix4f
+    // Convert Matrix4X4 to Eigen::Matrix4f, 계산을 위해  Eigen 형태로 변환
     Eigen::Matrix4f eigenMatrix;
     for (int i = 0; i < 4; ++i) {
         for (int j = 0; j < 4; ++j) {
@@ -56,16 +60,21 @@ Eigen::Matrix4f printSymmetricMatrix(const Matrix4X4& matrix) {
 
     Eigen::Matrix3f rotation = tracker_rotation * delta_rotation;
     
-    Eigen::Vector3f position = tracker_position + ((rotation) * delta_displacement);
+    Eigen::Vector3f position = tracker_position + ((rotation) * delta_displacement);// 카메라 좌표계로 변환
 
     Eigen::Matrix4f resultMatrix = composeMatrix(rotation, position);
 
     return resultMatrix;
 }
 
-Eigen::Matrix4f printSymmetricMatrix(const Eigen::Matrix4f& matrix) {
-    Eigen::Vector3f delta_displacement(0.0f, 0.0f, -0.05f);
-    Eigen::Matrix3f delta_rotation = createRotationMatrix();
+// 현재 트래커를 카메라 좌표계로 변환하기 위한 매트릭스 생성, 위 함수와 input 형식이 다름
+Eigen::Matrix4f T2C_coordinate(const Eigen::Matrix4f& matrix) {
+
+    Eigen::Vector3f delta_displacement(0.0f, 0.0f, -0.05f);//트래커를 카메라 위치로 이동, z축으로 -5cm
+    Eigen::Matrix3f delta_rotation = createRotationMatrix();//카메라 좌표계와 회전축을 맞추기 위한 행렬 생성 
+                                                            //1, 0, 0
+                                                            //0, 0, 1
+                                                            //0, -1, 0 트래커의 로테이션 행렬이 이와 같은 값을 가지고 있어 역행렬을 곱해주어 카메라 좌표계와 일치하게끔 변환
 
     Eigen::Matrix3f tracker_rotation = matrix.block<3, 3>(0, 0);
 
@@ -73,7 +82,7 @@ Eigen::Matrix4f printSymmetricMatrix(const Eigen::Matrix4f& matrix) {
 
     Eigen::Matrix3f rotation = tracker_rotation * delta_rotation;
 
-    Eigen::Vector3f position = tracker_position + ((rotation)*delta_displacement);
+    Eigen::Vector3f position = tracker_position + ((rotation)*delta_displacement);// 카메라 좌표계로 변환
 
     Eigen::Matrix4f resultMatrix = composeMatrix(rotation, position);
 
@@ -137,15 +146,15 @@ void VRTrackerReader::getData(TrackingData& data, uint32_t identifier, std::ofst
 
 
         Eigen::Matrix4f T_new;
-        T_new = ::ini_rotationMatrix.inverse() * convert_eigenMatrix;
-        Eigen::Matrix4f pose1 = printSymmetricMatrix(T_new);
+        T_new = ::ini_rotationMatrix.inverse() * convert_eigenMatrix;//이니셜 트래커를 기준으로하기 위해 이니셜 트래커의 역행렬을 곱해줌
+        Eigen::Matrix4f pose1 = T2C_coordinate(T_new);
         ::cam_ini_x = pose1(0, 3) * METERTOUNREALUNITS;
         ::cam_ini_y = pose1(1, 3) * METERTOUNREALUNITS;
         ::cam_ini_z = -pose1(2, 3) * METERTOUNREALUNITS;
 
-        outputFile << " *cam_x : " << ::cam_ini_x
-            << " *cam_y : " << ::cam_ini_y
-            << " *cam_z : " << ::cam_ini_z << std::endl;
+        outputFile << " *cam_x : " << ::cam_ini_x/100 //유니티와 단위를 맞추기 위해 100을 나눠줌
+                    << " *cam_y : " << ::cam_ini_y/100
+                    << " *cam_z : " << ::cam_ini_z/100 << std::endl;
     }
 
     //카메라 추적용 트래커의 위치 데이터를 받아옴
@@ -162,8 +171,8 @@ void VRTrackerReader::getData(TrackingData& data, uint32_t identifier, std::ofst
 
 
         Eigen::Matrix4f T_new;
-        T_new = ::ini_rotationMatrix.inverse() * convert_eigenMatrix;
-        Eigen::Matrix4f tracker_to_cam_pose = printSymmetricMatrix(T_new);
+        T_new = ::ini_rotationMatrix.inverse() * convert_eigenMatrix;//이니셜 트래커를 기준으로하기 위해 이니셜 트래커의 역행렬을 곱해줌
+        Eigen::Matrix4f tracker_to_cam_pose = T2C_coordinate(T_new);
 
         Quaternion cam_orientation = toQuaternion(tracker_to_cam_pose);
         std::cout << "cam_tracker : " << identifier << " x : " << std::left << std::setw(10) << tracker_to_cam_pose(0, 3) * METERTOUNREALUNITS
@@ -189,7 +198,7 @@ void VRTrackerReader::getData(TrackingData& data, uint32_t identifier, std::ofst
         std::string modifiedString = std::to_string(modifiedValue);
 
 
-        //data save, coordinate adjustment
+        //data save, coordinate adjustment, 카메라의 회전축과 부호가 반대인 부분이 있어 맞춰줌
         outputFile << modifiedString
             << " " << (-tracker_to_cam_pose(2, 3) * METERTOUNREALUNITS - ::cam_ini_z) / 100
             << " " << -(tracker_to_cam_pose(0, 3) * METERTOUNREALUNITS - ::cam_ini_x) / 100
@@ -212,7 +221,7 @@ void VRTrackerReader::getData(TrackingData& data, uint32_t identifier, std::ofst
 
 
         Eigen::Matrix4f T_new;
-        T_new = ::ini_rotationMatrix.inverse() * convert_eigenMatrix;
+        T_new = ::ini_rotationMatrix.inverse() * convert_eigenMatrix;//이니셜 트래커를 기준으로하기 위해 이니셜 트래커의 역행렬을 곱해줌
         Quaternion orientation = toQuaternion(T_new);
 
         //원점으로 부터 현재 트래커 까지의 거리를 계산 
@@ -280,6 +289,7 @@ void VRTrackerReader::readConfigurationFile() {
     std::cout << "Read configuration file." << std::endl;
 }
 
+
 void VRTrackerReader::applyConfiguration() {
     uint8_t index = 0;
     for (vr::TrackedDeviceIndex_t unDevice = 0; unDevice < vr::k_unMaxTrackedDeviceCount; unDevice++) {
@@ -300,6 +310,7 @@ void VRTrackerReader::applyConfiguration() {
     }
 }
 
+//카메라 추적용 데이터의 정보를 저장하기 위한 파일을 생성하는 함수
 std::string VRTrackerReader::FileCreate() {
     auto now = std::chrono::system_clock::now();
     auto in_time_t = std::chrono::system_clock::to_time_t(now);
@@ -341,16 +352,8 @@ void VRTrackerReader::printInformationAboutConnectedDevices() {
 	}
 }
 
+//config 파일에 현재 연결된 트래커들을 등록하는 함수
 void VRTrackerReader::run() {
-
-    VRTrackerReader v;
-
-    std::string fileName = v.FileCreate();
-    std::ofstream outputFile("C:/Users/jh813" + fileName);
-
-    float ini_x = 0;
-    float ini_y = 0;
-    float ini_z = 0;
 
     vr::EVRInitError eError = vr::VRInitError_None;
     vrSystem = vr::VR_Init(&eError, vr::VRApplication_Background);
@@ -367,6 +370,8 @@ void VRTrackerReader::run() {
     }
 }
 
+
+//트래커 정보를 받아 올 수 있는 메인 함수
 void VRTrackerReader::run(int cam_input_, int ini_input_) {
 
     VRTrackerReader v;
@@ -427,6 +432,8 @@ void VRTrackerReader::run(int cam_input_, int ini_input_) {
     }
 }
 
+
+//현재 연결된 디바이스들의 정보를 출력하는 함수
 void VRTrackerReader::printInformationAboutConnectedDevice(){
     VRTrackerReader v;
 

@@ -4,7 +4,7 @@
 #include<queue>
 using namespace std;
 
-int ply2obj(const string& arg_inputPath, const string& arg_outputPath) {
+int ply2obj(const string& arg_inputPath, const string& arg_outputPath, const int& depth) {
     // Define input and output paths
     using namespace open3d;
     //std::string input_path = "C:\\Users\\jh813\\source\\repos\\ConsoleApplication4\\cloud5.ply";
@@ -51,7 +51,7 @@ int ply2obj(const string& arg_inputPath, const string& arg_outputPath) {
    //open3d::io::WritePointCloud("cleaned_point_cloud.ply", pcd_filtered); 
 
     // Perform Poisson surface reconstruction
-    int depth = 8;
+    int depth_ = depth;
     float width = 0.0f;
     float scale = 1.1f;
     bool linear_fit = false;
@@ -84,14 +84,26 @@ int ply2obj(const string& arg_inputPath, const string& arg_outputPath) {
 
 int main(int argc, char* argv[])
 {
-    if (argc != 3) {
-        std::cout << "사용법: " <<  "파일명, 입력경로, 출력경로" << std::endl;
-        return 1;
+    std::string inputPath;
+    std::string outputPath;
+    int depth;
+    if (argc != 4) {
+        if (argc == 3) {
+            inputPath = argv[1];
+            outputPath = argv[2];
+            depth = 8;
+        }
+        else {
+            std::cout << "사용법: " << "파일명, 입력경로, 출력경로, 깊이" << std::endl;
+            return 1;
+        }
     }
-    std::string inputPath = argv[1];
-    std::string outputPath = argv[2];
-    std::cout  << inputPath << std::endl;
-    std::cout  << outputPath << std::endl;
+    else if(argc == 4){
+        inputPath = argv[1];
+        outputPath = argv[2];
+        depth = std::atoi(argv[3]);
+    }
 
-    ply2obj(inputPath, outputPath);
+
+    ply2obj(inputPath, outputPath, depth);
 }

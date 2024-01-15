@@ -6,11 +6,10 @@
 #include <iostream>
 #include <string>
 #include <cstdlib>
-const double PI = std::acos(-1);
 
 float cam_ini_x = 0.0;
 float cam_ini_y = 0.0;
-float cam_ini_z = 0.0;
+float cam_ini_z = 0.0; 
 Eigen::Matrix4f ini_rotationMatrix;
 
 // Function to create a 4x4 matrix from rotation and translation
@@ -69,7 +68,7 @@ Eigen::Matrix4f T2C_coordinate(const Matrix4X4& matrix) {
 
 // 현재 트래커를 카메라 좌표계로 변환하기 위한 매트릭스 생성, 위 함수와 input 형식이 다름
 Eigen::Matrix4f T2C_coordinate(const Eigen::Matrix4f& matrix) {
-
+     
     Eigen::Vector3f delta_displacement(0.0f, 0.0f, -0.05f);//트래커를 카메라 위치로 이동, z축으로 -5cm
     Eigen::Matrix3f delta_rotation = createRotationMatrix();//카메라 좌표계와 회전축을 맞추기 위한 행렬 생성 
                                                             //1, 0, 0
@@ -107,7 +106,7 @@ void VRTrackerReader::getData(TrackingData& data, uint32_t identifier, std::ofst
 
     // pose 변수로 부터 쿼터니언 값 추출
     Quaternion orientation = toQuaternion(pose);
-    //초기 원점 좌표로 부터 초기화용 트래커 까지의 거리를 출력
+    //초기점 좌표로 부터 초기화용 트래커 까지의 거리를 출력  
     if (identifier == ini && *ini_x == 0.0 && *ini_y == 0.0 && *ini_z == 0.0 && !a) {
         //Eigen::Quaterniond q(orientation.w, orientation.x, orientation.y, orientation.z);
 
@@ -124,7 +123,7 @@ void VRTrackerReader::getData(TrackingData& data, uint32_t identifier, std::ofst
         *ini_x = devicePose.mDeviceToAbsoluteTracking.m[0][3] * METERTOUNREALUNITS;
         *ini_y = devicePose.mDeviceToAbsoluteTracking.m[1][3] * METERTOUNREALUNITS;
         *ini_z = -devicePose.mDeviceToAbsoluteTracking.m[2][3] * METERTOUNREALUNITS;
-        
+        // 초기화용 매트릭스의 R, T를 ini_rotationMatrix에 저장
         for (int i = 0; i < 4; ++i) {
             for (int j = 0; j < 4; ++j) {
                 ::ini_rotationMatrix(i, j) = pose.M[j][i];
@@ -138,6 +137,7 @@ void VRTrackerReader::getData(TrackingData& data, uint32_t identifier, std::ofst
     //카메라의 시작 위치 저장용 트래커의 원점 기준의 x, y, z 저장 -> 한번만 작동
     else if (identifier == cam && ::cam_ini_x == 0.0 && ::cam_ini_y == 0.0 && ::cam_ini_z == 0.0 && a && *ini_x != 0.0) {
         Eigen::Matrix4f convert_eigenMatrix;
+        //매트릭스 형태 변환
         for (int i = 0; i < 4; ++i) {
             for (int j = 0; j < 4; ++j) {
                 convert_eigenMatrix(i, j) = pose.M[j][i];
@@ -147,7 +147,9 @@ void VRTrackerReader::getData(TrackingData& data, uint32_t identifier, std::ofst
 
         Eigen::Matrix4f T_new;
         T_new = ::ini_rotationMatrix.inverse() * convert_eigenMatrix;//이니셜 트래커를 기준으로하기 위해 이니셜 트래커의 역행렬을 곱해줌
+        
         Eigen::Matrix4f pose1 = T2C_coordinate(T_new);
+        //변환된 원점으로 부터 카메라 초기 위치 저장
         ::cam_ini_x = pose1(0, 3) * METERTOUNREALUNITS;
         ::cam_ini_y = pose1(1, 3) * METERTOUNREALUNITS;
         ::cam_ini_z = -pose1(2, 3) * METERTOUNREALUNITS;
@@ -162,6 +164,7 @@ void VRTrackerReader::getData(TrackingData& data, uint32_t identifier, std::ofst
         auto currentTimePoint = std::chrono::system_clock::now();
         auto microseconds = std::chrono::time_point_cast<std::chrono::microseconds>(currentTimePoint);
 
+        //매트릭스 형태 변환
         Eigen::Matrix4f convert_eigenMatrix;
         for (int i = 0; i < 4; ++i) {
             for (int j = 0; j < 4; ++j) {
@@ -184,7 +187,7 @@ void VRTrackerReader::getData(TrackingData& data, uint32_t identifier, std::ofst
             << ", q.w : " << std::left << std::setw(10) << cam_orientation.w << std::endl;
             
 
-        //current time
+        //rtabmap의 타임스탬프와 같은 형태로 변환, 1970년 1월 1일 0시 0분 0초를 기준으로 경과한 시간을 초 단위로 표현한 값, Unix timestamp
         std::string number = std::to_string(microseconds.time_since_epoch().count());
         number.pop_back();
 
@@ -199,6 +202,7 @@ void VRTrackerReader::getData(TrackingData& data, uint32_t identifier, std::ofst
 
 
         //data save, coordinate adjustment, 카메라의 회전축과 부호가 반대인 부분이 있어 맞춰줌
+        // 0, 0, 0 부터 시작해야함으로 카메라 초기위치값 만큼 빼줌
         outputFile << modifiedString
             << " " << (-tracker_to_cam_pose(2, 3) * METERTOUNREALUNITS - ::cam_ini_z) / 100
             << " " << -(tracker_to_cam_pose(0, 3) * METERTOUNREALUNITS - ::cam_ini_x) / 100
